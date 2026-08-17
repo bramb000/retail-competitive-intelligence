@@ -1,0 +1,16 @@
+# Working directory for APK/device-capture tooling — decompiled and
+# recompiled Coles APKs, jadx/apktool output, mitmproxy captures (contain
+# real captured auth headers/tokens), BlueStacks screenshots. Never commit:
+# legally sensitive (redistributing decompiled/compiled third-party app
+# code) and security-sensitive (live-ish captured credentials).
+.tools/
+
+__pycache__/
+*.pyc
+
+# Scraped data + logs — local run artifacts, not source.
+scraper_data.duckdb
+scraper.log
+
+# Claude Code session-local state.
+.claude/
