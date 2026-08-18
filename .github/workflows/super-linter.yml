@@ -35,15 +35,17 @@ jobs:
           # sweep once existing issues are cleaned up.
           VALIDATE_ALL_CODEBASE: false
 
+          # super-linter rejects mixing true/false VALIDATE_* flags in one
+          # run ("Behavior not supported, please either only include or
+          # exclude linters, but not both" — hit live on the first run of
+          # this workflow). So this list is opt-IN only: anything not named
+          # here (notably PYTHON_PYLINT — the most opinionated of the Python
+          # linters, and this codebase's style hasn't been tuned against it)
+          # is implicitly off, not explicitly disabled.
           VALIDATE_PYTHON_BLACK: true
           VALIDATE_PYTHON_ISORT: true
           VALIDATE_PYTHON_FLAKE8: true
           VALIDATE_PYTHON_MYPY: true
-          # Pylint is off by default: it's the most opinionated of the
-          # Python linters (naming/complexity/broad-except rules etc.) and
-          # this codebase's style hasn't been tuned against it. Turn on
-          # once a pylintrc exists to match this project's conventions.
-          VALIDATE_PYTHON_PYLINT: false
 
           VALIDATE_YAML: true
           VALIDATE_MARKDOWN: true
