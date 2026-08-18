@@ -132,6 +132,15 @@ CREATE TABLE IF NOT EXISTS price_history (
 )
 """
 
+_CREATE_CATALOG_CATEGORIES_SQL = """
+CREATE TABLE IF NOT EXISTS catalog_categories (
+    retailer VARCHAR,
+    retailer_product_id BIGINT,
+    category VARCHAR,
+    PRIMARY KEY (retailer, retailer_product_id, category)
+)
+"""
+
 _CREATE_CURRENT_PRICES_VIEW_SQL = """
 CREATE OR REPLACE VIEW current_prices AS
 SELECT
@@ -262,8 +271,8 @@ class ScrapeStats:
 class ProductStore:
     """Thin wrapper around a local DuckDB file. Use as a context manager.
 
-        with ProductStore() as store:
-            stats = store.record_scrape(store_location, products, date.today().isoformat())
+    with ProductStore() as store:
+        stats = store.record_scrape(store_location, products, date.today().isoformat())
     """
 
     def __init__(self, db_path: str = "scraper_data.duckdb") -> None:
@@ -277,6 +286,7 @@ class ProductStore:
         self._conn.execute(_CREATE_PRODUCTS_SQL)
         self._conn.execute(_CREATE_PRICE_HISTORY_SQL)
         self._migrate_price_history_columns()
+        self._conn.execute(_CREATE_CATALOG_CATEGORIES_SQL)
         self._conn.execute(_CREATE_CURRENT_PRICES_VIEW_SQL)
         return self
 
@@ -306,6 +316,28 @@ class ProductStore:
         if self._conn is None:
             raise RuntimeError("ProductStore must be used as a context manager")
         return self._conn
+
+    def import_catalog_categories(self, csv_path: str, retailer: str = "Coles") -> int:
+        """Bulk-load a retailer-wide (product_id, category) reference CSV.
+
+        Source: a BigQuery export of `market_intelligence.MI_raw_history`
+        (`retailer_product_id,category` columns, header row). This is a
+        national catalogue, not store-scoped — a product can legitimately
+        appear under more than one category, hence the composite primary key
+        rather than one row per product_id. Existing rows are left alone; a
+        re-import only adds pairs not already present.
+        """
+        conn = self._require_conn()
+        conn.execute(
+            """
+            INSERT INTO catalog_categories (retailer, retailer_product_id, category)
+            SELECT ?, retailer_product_id, category
+            FROM read_csv_auto(?, header=true)
+            ON CONFLICT DO NOTHING
+            """,
+            [retailer, csv_path],
+        )
+        return conn.execute("SELECT COUNT(*) FROM catalog_categories WHERE retailer = ?", [retailer]).fetchone()[0]
 
     # --- Dimension upserts --------------------------------------------------
 
@@ -448,19 +480,35 @@ class ProductStore:
         (changed_count,) = conn.execute("SELECT COUNT(*) FROM changed_keys WHERE NOT is_new").fetchone()
 
         # Close out the old open row for anything that changed (not new — a
-        # brand-new product has no prior open row to close).
+        # brand-new product has no prior open row to close) — but only if
+        # that open row is from a PRIOR day. The table's grain is one row
+        # per (store, product, day): if this store was already scraped
+        # earlier TODAY, its currently-open row already has
+        # valid_from = scrape_date, so there's no distinct "old day" to
+        # close — that row gets updated in place below instead (via
+        # ON CONFLICT), rather than being closed-and-reopened with an
+        # identical valid_from, which would collide on the
+        # (store_id, product_key, valid_from) unique constraint.
         conn.execute(
             """
             UPDATE price_history
             SET valid_to = ?
-            WHERE store_id = ? AND valid_to IS NULL
+            WHERE store_id = ? AND valid_to IS NULL AND valid_from < ?
               AND product_key IN (SELECT product_key FROM changed_keys WHERE NOT is_new)
             """,
-            [scrape_date, store_id],
+            [scrape_date, store_id, scrape_date],
         )
 
-        # Open a new row for everything changed-or-new.
+        # Open a new row for everything changed-or-new. ON CONFLICT handles
+        # the same-day-rescrape case above: if a row for this exact
+        # (store, product, day) already exists (not closed, since it wasn't
+        # from a prior day), overwrite its fact columns in place instead of
+        # inserting a colliding duplicate.
         columns_sql = ", ".join(_quote(c) for c in _PRICE_HISTORY_COLUMNS)
+        update_columns = [
+            c for c in _PRICE_HISTORY_COLUMNS if c not in ("store_id", "product_key", "valid_from", "valid_to")
+        ]
+        update_sql = ", ".join(f"{_quote(c)} = EXCLUDED.{_quote(c)}" for c in update_columns)
         conn.execute(
             f"""
             INSERT INTO price_history ({columns_sql})
@@ -470,6 +518,7 @@ class ProductStore:
                    s.scraped_at, ?, NULL
             FROM staging_prices s
             JOIN changed_keys c ON c.product_key = s.product_key
+            ON CONFLICT (store_id, product_key, valid_from) DO UPDATE SET {update_sql}
             """,
             [store_id, scrape_date],
         )
@@ -623,12 +672,35 @@ class ProductStore:
             return None
 
         legacy_columns = (
-            "scraped_at", "run_number", "location", "store", "suburb_name", "postcode",
-            "latitude", "longitude", "category", "sub_category_1", "sub_category_2",
-            "sub_category_3", "retailer_product_id", "child_product_id", "name", "pack_size",
-            "clean_uom", "price_display", "loyalty_price", "price_per_uom", "clean_brand",
-            "prev_price", "stock_status", "product_badge", "product_page", "image_url",
-            '"No_of_reviews"', '"Star_rating"', '"PLV_ID"',
+            "scraped_at",
+            "run_number",
+            "location",
+            "store",
+            "suburb_name",
+            "postcode",
+            "latitude",
+            "longitude",
+            "category",
+            "sub_category_1",
+            "sub_category_2",
+            "sub_category_3",
+            "retailer_product_id",
+            "child_product_id",
+            "name",
+            "pack_size",
+            "clean_uom",
+            "price_display",
+            "loyalty_price",
+            "price_per_uom",
+            "clean_brand",
+            "prev_price",
+            "stock_status",
+            "product_badge",
+            "product_page",
+            "image_url",
+            '"No_of_reviews"',
+            '"Star_rating"',
+            '"PLV_ID"',
         )
         legacy_rows = conn.execute(
             f"SELECT {', '.join(legacy_columns)} FROM product_snapshots ORDER BY run_number, scraped_at"

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple
 
 from hybrid_scraper.bootstrapper import PlaywrightBootstrapper
 from hybrid_scraper.engine import CurlCffiEngine
@@ -135,28 +135,71 @@ class ScraperOrchestrator:
         scrape_date: str,
         max_pages_per_term: int = 5,
         max_search_terms: Optional[int] = 30,
+        max_concurrent_stores: Optional[int] = None,
+        launch_stagger_seconds: float = 0.0,
+        on_store_start: Optional[Callable[[StoreLocation], Awaitable[None]]] = None,
+        on_store_done: Optional[Callable[[StoreLocation, Any], Awaitable[None]]] = None,
     ) -> Tuple[Dict[str, List[Product]], Dict[str, Exception]]:
         """Run `get_all_products` concurrently for every resolved store target.
 
         Returns (results, failures) keyed by `"<retailer> - <store_id>"` so a
         single store's exhausted retries or hard failure doesn't abort the
         rest of the batch.
+
+        By default every target launches at once (unchanged from before —
+        existing callers don't pass the params below, so behavior for them
+        is identical). At larger store counts this is unsafe: each store's
+        `get_all_products` call may trigger a full Playwright anti-bot
+        challenge-solve, and nothing here previously capped how many of
+        those ran simultaneously.
+
+        `max_concurrent_stores`, when set, bounds simultaneous store
+        executions via a semaphore. `launch_stagger_seconds` delays the
+        *attempt* to start each store's task (before it even queues for the
+        semaphore) by `index * launch_stagger_seconds`, so a batch of
+        targets doesn't all hit the semaphore — and the anti-bot vendor's
+        edge — in the same instant. `on_store_start`, if given, is awaited
+        right as a store's fetch actually begins — after its stagger delay
+        and after it has acquired the semaphore slot — so it reflects real
+        concurrency (e.g. exactly `max_concurrent_stores` "in flight" at
+        once), not just launch order. `on_store_done`, if given, is awaited
+        immediately once a store's outcome (product list or exception) is
+        known, letting a caller persist results incrementally instead of
+        waiting for every target to finish (so an interrupted run keeps
+        whatever already completed).
         """
 
         logger.info("run_for_stores start scrape_date=%s targets=%d", scrape_date, len(targets))
 
-        async def _run_one(store_location: StoreLocation) -> Tuple[str, Any]:
-            key = f"{store_location.retailer} - {store_location.store_id}"
+        store_semaphore = asyncio.Semaphore(max_concurrent_stores) if max_concurrent_stores else None
+
+        async def _execute(store_location: StoreLocation, key: str) -> Any:
             try:
-                products = await self.get_all_products(
-                    store_location, scrape_date, max_pages_per_term, max_search_terms
-                )
-                return key, products
+                return await self.get_all_products(store_location, scrape_date, max_pages_per_term, max_search_terms)
             except (MaxRetriesExceededError, NetworkError, ParsingError) as exc:
                 logger.error("Store failed permanently key=%s error_type=%s: %s", key, type(exc).__name__, exc)
-                return key, exc
+                return exc
 
-        outcomes = await asyncio.gather(*(_run_one(target) for target in targets))
+        async def _run_one(index: int, store_location: StoreLocation) -> Tuple[str, Any]:
+            key = f"{store_location.retailer} - {store_location.store_id}"
+            if launch_stagger_seconds:
+                await asyncio.sleep(index * launch_stagger_seconds)
+
+            if store_semaphore is not None:
+                async with store_semaphore:
+                    if on_store_start is not None:
+                        await on_store_start(store_location)
+                    outcome = await _execute(store_location, key)
+            else:
+                if on_store_start is not None:
+                    await on_store_start(store_location)
+                outcome = await _execute(store_location, key)
+
+            if on_store_done is not None:
+                await on_store_done(store_location, outcome)
+            return key, outcome
+
+        outcomes = await asyncio.gather(*(_run_one(i, target) for i, target in enumerate(targets)))
 
         results: Dict[str, List[Product]] = {}
         failures: Dict[str, Exception] = {}

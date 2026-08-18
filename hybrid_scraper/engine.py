@@ -33,11 +33,41 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from curl_cffi.requests import AsyncSession
 
+from hybrid_scraper.aisle_enrichment import get_coles_app_headers
 from hybrid_scraper.config import IMPERSONATE_TARGET, RETAILER_CONFIGS
 from hybrid_scraper.exceptions import AuthExpiredError, BootstrapError, NetworkError, ParsingError, RateLimitError
 from hybrid_scraper.models import Product, RetailerName, SessionContext, StoreLocation, parse_pack_size
 
 logger = logging.getLogger(__name__)
+
+# Coles' website categories_url (config.COLES_CONFIG.categories_url) 404s in
+# production and has never been confirmed working — see FALLBACK_SEARCH_TERMS
+# below. The real, complete category tree instead lives on the mobile app's
+# own backend, confirmed live: one GET returns the full department ->
+# subcategory -> sub-subcategory tree (confirmed live: 20 top-level
+# departments, ~1000 leaf categories) via the same device-attested session
+# `aisle_enrichment.py` already manages. Its sibling category-driven PRODUCT
+# search endpoint (`v3/api/3/products/search`) needs a SEPARATE OAuth/guest
+# bearer token this project hasn't captured (a real in-app category browse
+# would need to be driven to observe one) — so this only pulls category
+# NAMES from the mobile side, then hands them to the existing, already-
+# working website search API as search terms, same as FALLBACK_SEARCH_TERMS
+# but with ~1000 real taxonomic names instead of 20 generic grocery words.
+_COLES_MOBILE_CATEGORIES_URL = "https://apigw.coles.com.au/digital/colesappbff/v3/api/2/products/categories"
+
+# Cross-cutting value/bundle groupings that duplicate items already
+# reachable under their real department (same concept as
+# `_is_promotional_branch` below, for Woolworths' "Specials" branch) — only
+# one confirmed live example for Coles ("Big Pack Value"), matched only at
+# the top level so a legitimately-named subcategory elsewhere isn't skipped.
+_COLES_PROMOTIONAL_TOP_LEVEL_MARKERS = ("special", "value")
+
+# Guards get_coles_app_headers() (which may synchronously trigger a live
+# BlueStacks capture on a cache miss) so two stores' category-tree fetches
+# running concurrently don't both try to bind mitmdump's proxy port at once
+# — the same port-conflict risk `aisle_enrichment.py`'s single-flight
+# refresh lock protects against, for this separate call site.
+_coles_mobile_categories_lock = asyncio.Lock()
 
 # --- Store resolution: GraphQL query documents captured verbatim from a live
 # Coles JS bundle (_app-*.js, "query FindStores"/"query GetStoreLocationSuggestions"
@@ -160,14 +190,32 @@ def _pick_best_suburb_match(
                 return result
     return results[0]
 
+
 # Used only if a retailer's own category-tree endpoint is unreachable/empty —
 # guarantees the engine still produces real results rather than nothing.
 # (Coles' categories_url in particular is unverified; Woolworths' is
 # confirmed working, so this fallback is Coles' realistic path today.)
 FALLBACK_SEARCH_TERMS: Tuple[str, ...] = (
-    "milk", "bread", "eggs", "cheese", "chicken", "beef", "bananas", "apples",
-    "yoghurt", "pasta", "rice", "cereal", "coffee", "tea", "chips", "chocolate",
-    "soft drink", "juice", "frozen vegetables", "toilet paper",
+    "milk",
+    "bread",
+    "eggs",
+    "cheese",
+    "chicken",
+    "beef",
+    "bananas",
+    "apples",
+    "yoghurt",
+    "pasta",
+    "rice",
+    "cereal",
+    "coffee",
+    "tea",
+    "chips",
+    "chocolate",
+    "soft drink",
+    "juice",
+    "frozen vegetables",
+    "toilet paper",
 )
 
 # Category-tree branches that are cross-cutting promotional filters rather
@@ -543,7 +591,9 @@ class CurlCffiEngine:
         """
         config = RETAILER_CONFIGS[session_context.retailer]
         payload = await self._request(session_context, "GET", config.categories_url)
-        raw_nodes = payload if isinstance(payload, list) else payload.get("categories") or payload.get("Categories") or []
+        raw_nodes = (
+            payload if isinstance(payload, list) else payload.get("categories") or payload.get("Categories") or []
+        )
         leaves = self._flatten_categories(raw_nodes)
         logger.info(
             "fetch_categories retailer=%s store_id=%s leaf_categories=%d",
@@ -551,6 +601,69 @@ class CurlCffiEngine:
             session_context.store_id,
             len(leaves),
         )
+        return leaves
+
+    @staticmethod
+    async def fetch_coles_categories_via_mobile(store_id: str) -> List[CategoryNode]:
+        """Coles' real category tree, fetched via the mobile app backend.
+
+        See the module-level comment on `_COLES_MOBILE_CATEGORIES_URL` for
+        why this exists (the website's categories_url 404s) and why it only
+        pulls category names rather than calling the sibling
+        category-driven product-search endpoint directly. Confirmed live:
+        one GET returns the full nested tree for a store — no per-department
+        fan-out calls needed, unlike Woolworths' `fetch_categories` path.
+        """
+        async with _coles_mobile_categories_lock:
+            headers = get_coles_app_headers()
+        url = (
+            f"{_COLES_MOBILE_CATEGORIES_URL}?storeId={store_id}&shoppingMethod=clickAndCollect"
+            f"&includeLiquor=true&includeTobacco=true"
+        )
+        async with AsyncSession() as session:
+            response = await session.get(url, headers=headers, impersonate=IMPERSONATE_TARGET, timeout=20)
+        if response.status_code != 200:
+            raise BootstrapError(
+                f"Coles mobile categories endpoint returned {response.status_code} for store {store_id}"
+            )
+        try:
+            raw_top_level = response.json()
+        except ValueError as exc:
+            raise ParsingError(
+                f"Could not decode Coles mobile categories response for store {store_id}: {exc}"
+            ) from exc
+        if not isinstance(raw_top_level, list):
+            raise ParsingError(f"Coles mobile categories endpoint returned an unexpected shape for store {store_id}")
+
+        leaves: List[CategoryNode] = []
+
+        def _walk(nodes: List[Dict[str, Any]], path: Tuple[str, ...]) -> None:
+            for node in nodes:
+                name = node.get("name")
+                node_id = node.get("id")
+                product_count = node.get("productCount") or 0
+                if not path and name and any(marker in name.lower() for marker in _COLES_PROMOTIONAL_TOP_LEVEL_MARKERS):
+                    continue  # e.g. "Big Pack Value" — a cross-cutting bundle, not a real department
+                children = node.get("subCategories") or []
+                new_path = path + (name,) if name else path
+                if children:
+                    _walk(children, new_path)
+                elif node_id and name and product_count > 0:
+                    breadcrumb = (list(new_path) + [None, None, None])[:4]
+                    category, sub_1, sub_2, sub_3 = breadcrumb
+                    leaves.append(
+                        CategoryNode(
+                            id=str(node_id),
+                            search_term=name,
+                            category=category or name,
+                            sub_category_1=sub_1,
+                            sub_category_2=sub_2,
+                            sub_category_3=sub_3,
+                        )
+                    )
+
+        _walk(raw_top_level, ())
+        logger.info("fetch_coles_categories_via_mobile store_id=%s leaf_categories=%d", store_id, len(leaves))
         return leaves
 
     @classmethod
@@ -738,7 +851,9 @@ class CurlCffiEngine:
                 "bay_number": str(location_info["shelf"]) if location_info.get("shelf") is not None else None,
             }
         except (TypeError, ValueError, KeyError) as exc:
-            logger.error("Failed to parse Coles item stockcode=%r search_term=%r: %s", stockcode, category.search_term, exc)
+            logger.error(
+                "Failed to parse Coles item stockcode=%r search_term=%r: %s", stockcode, category.search_term, exc
+            )
             raise ParsingError(f"Failed to parse Coles product item {stockcode!r}: {exc}") from exc
 
     @staticmethod
@@ -781,9 +896,7 @@ class CurlCffiEngine:
                 "stock_status": "In Stock" if is_available else "Out of Stock",
                 "product_badge": badge,
                 "product_page": (
-                    f"https://www.woolworths.com.au/shop/productdetails/{stockcode}/{url_name}"
-                    if url_name
-                    else None
+                    f"https://www.woolworths.com.au/shop/productdetails/{stockcode}/{url_name}" if url_name else None
                 ),
                 "image_url": item.get("SmallImageFile") or item.get("MediumImageFile"),
                 "no_of_reviews": str(rating["ReviewCount"]) if rating.get("ReviewCount") else None,
@@ -843,7 +956,13 @@ class CurlCffiEngine:
             scrape_date,
         )
         try:
-            categories = await self.fetch_categories(session_context)
+            if session_context.retailer == "Coles":
+                # Coles' website categories_url 404s (never confirmed
+                # working) — the real tree lives on the mobile app backend
+                # instead. See fetch_coles_categories_via_mobile's docstring.
+                categories = await self.fetch_coles_categories_via_mobile(session_context.store_id)
+            else:
+                categories = await self.fetch_categories(session_context)
         except Exception as exc:
             categories = []
             logger.warning(

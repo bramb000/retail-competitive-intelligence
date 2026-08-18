@@ -34,15 +34,9 @@ import time
 from typing import Any, Dict, Optional, Set
 
 from curl_cffi.requests import AsyncSession as CurlAsyncSession
-from playwright.async_api import (
-    Browser,
-    BrowserContext,
-    Playwright,
-    Request,
-    Response,
-    TimeoutError as PlaywrightTimeoutError,
-    async_playwright,
-)
+from playwright.async_api import Browser, BrowserContext, Playwright, Request
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright
 
 from hybrid_scraper.config import (
     DEFAULT_USER_AGENT,
@@ -213,9 +207,7 @@ class PlaywrightBootstrapper:
                 if newly_captured:
                     # Log which header NAMES were captured, never the values —
                     # these are live session secrets and must not land in a log file.
-                    logger.debug(
-                        "Captured search-request headers retailer=%s names=%s", retailer, newly_captured
-                    )
+                    logger.debug("Captured search-request headers retailer=%s names=%s", retailer, newly_captured)
 
             page.on("request", _on_request)
 

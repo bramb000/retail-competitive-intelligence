@@ -1,0 +1,43 @@
+store_id,name,suburb,state,postcode,address_line,latitude,longitude,phone,is_trading
+COL:7662,Coles Bankstown,Bankstown,NSW,2200,Bankstown Central - Jacobs Street,-33.916409,151.037318,(02) 8761 1000,True
+COL:909,Coles Eastgardens,Pagewood,NSW,2036,Bunnerong Rd & Wentworth Ave,-33.944328,151.223828,(02) 8347 6100,True
+COL:883,Coles Kellyville,Kellyville,NSW,2155,Wrights Rd & Victoria Rd,-33.713408,150.971213,(02) 8818 2100,True
+COL:5557,Coles Lane Cove Park,Lane Cove,NSW,2066,Rosenthal Ave,-33.8133,151.169,(02) 7207 6600,True
+COL:4974,Coles Neutral Bay Grosvenor St,Neutral Bay,NSW,2089,43-51 Grosvenor St,-33.830633,151.222496,(02) 9180 8400,True
+COL:5558,Coles Oran Park,Oran Park,NSW,2570,351 Oran Park Drive,-33.997567,150.740605,(02) 4624 2000,True
+COL:7663,Coles Parramatta,Parramatta,NSW,2150,Church St & Campbell St,-33.817865,150.999865,(02) 7811 2400,True
+COL:7556,Coles Penrith Westfield,Penrith,NSW,2750,585 High Street,-33.751171,150.693701,(02) 4749 6400,True
+COL:7671,Coles Surry Hills,Redfern,NSW,2016,"Tenancy B101, 4 Baptist Street",-33.891703,151.211966,(02) 8364 1500,True
+COL:7549,Coles Box Hill Carmel Village,Box Hill,NSW,2765,745 Windsor Rd,-33.658873,150.879731,(02) 8652 1200,True
+COL:793,Coles Engadine,Engadine,NSW,2233,18 - 26 Waratah Rd,-34.064788,151.010483,(02) 8545 0200,True
+COL:749,Coles Fairfield Forum - Sydney,Fairfield,NSW,2165,Station St,-33.86752,150.95152,(02) 8768 5600,True
+COL:5770,Coles Fairfield West - Sydney,Fairfield West,NSW,2165,368 Hamilton Rd,-33.868684,150.923519,(02) 9616 5100,True
+COL:782,Coles Hurstville,Hurstville,NSW,2220,Cross St & Park Rd,-33.966374,151.10611,(02) 8567 3400,True
+COL:723,Coles Liverpool Westfield,Liverpool,NSW,2170,Northumberland St & Elizabeth St,-33.919478,150.922346,(02) 8327 8700,True
+COL:790,Coles Miranda,Miranda,NSW,2228,1-13 Wandella St,-34.032259,151.09966,(02) 7501 8200,True
+COL:862,Coles Blacktown,Blacktown,NSW,2148,17 Patrick St,-33.769857,150.905935,(02) 8652 8900,True
+COL:846,Coles Leichhardt,Leichhardt,NSW,2040,51 - 57 Norton St,-33.886035,151.157901,(02) 9179 5800,True
+COL:726,Coles Mount Druitt,Mount Druitt,NSW,2770,Carlisle Ave & Luxford Rd,-33.766139,150.821044,(02) 8652 9400,True
+COL:7708,Coles Chullora,Chullora,NSW,2190,355 Waterloo Rd,-33.893013,151.06158,(02) 7905 4100,True
+COL:5801,Coles Top Ryde,Ryde,NSW,2112,Corner Blaxland Road & Devlin Street,-33.811577,151.106984,(02) 8878 8100,True
+COL:4180,Coles Wentworth Point,Wentworth Point,NSW,2127,Burroway Road,-33.823699,151.078822,(02) 7922 3000,True
+COL:7799,Coles Ardeer,Sunshine West,VIC,3020,The Avenue & Corella Rd,-37.797996,144.8054,(03) 7047 2200,True
+COL:7546,Coles Box Hill Central,Box Hill,VIC,3128,"Box Hill Central, Corner Carrington Road & Thurston Street",-37.819572,145.119981,(03) 9140 0100,True
+COL:7724,Coles Caulfield Village,Caulfield,VIC,3161,5-17 Normanby Rd,-37.876268,145.038607,(03) 9056 0000,True
+COL:643,Coles Chadstone,Chadstone,VIC,3145,1341 Dandenong Road,-37.885607,145.084553,(03) 8580 8800,True
+COL:7574,Coles Chadstone Village,Ashwood,VIC,3148,Warrigal Rd,-37.879799,145.091457,(03) 7005 6900,True
+COL:622,Coles Chirnside Park,Chirnside Park,VIC,3116,Maroondah Hwy,-37.757005,145.313296,(03) 8709 1500,True
+COL:7669,Coles Craigieburn Village,Craigieburn North,VIC,3064,330 Brookfield Blvd,-37.573384,144.899746,(03) 7040 0000,True
+COL:544,Coles Eden Rise,Berwick South,VIC,3806,Corner Of O'shea Rd And Clyde Rd,-38.061105,145.339593,(03) 9703 9300,True
+COL:582,Coles Essendon Fields,Strathmore,VIC,3041,30 English St,-37.727322,144.895882,(03) 8341 9900,True
+COL:650,Coles Knox,Wantirna South,VIC,3152,425 Burwood Hwy,-37.868302,145.240403,(03) 8863 2400,True
+COL:673,Coles Mornington,Mornington,VIC,3931,Franklin St & Gordon St,-38.219311,145.040039,(03) 5958 9200,True
+COL:7721,Coles Blackburn North,Blackburn North,VIC,3130,Corner Of Springfield & Williams Rds,-37.811272,145.1535,(03) 8863 8200,True
+COL:654,Coles Epping,Epping,VIC,3076,High St & Cooper St,-37.654365,145.018803,(03) 8468 3000,True
+COL:625,Coles Parkmore,Keysborough,VIC,3173,Cheltenham Rd & Kingsclere Ave,-37.992299,145.171965,(03) 8769 1700,True
+COL:669,Coles Southland,Cheltenham,VIC,3192,1239 Nepean Hwy,-37.958863,145.050855,(03) 9239 6100,True
+COL:7748,Coles St Germain,Clyde North,VIC,3978,1/21 St Germain Boulevard,-38.093258,145.361514,(03) 8750 6100,True
+COL:7841,Coles Taylors Hill,Taylors Hill,VIC,3037,Gourlay Rd & Hume Dr,-37.711435,144.741333,(03) 8348 3100,True
+COL:507,Coles Tooronga,Glen Iris,VIC,3146,Cnr Tooronga Rd & Toorak Rd,-37.846191,145.045472,(03) 8823 6300,True
+COL:7685,Coles Truganina,Truganina,VIC,3029,185 Woods Road,-37.819683,144.719735,(03) 8366 3500,True
+COL:677,Coles Vermont South,Vermont South,VIC,3133,Burwood Hwy & Hanover Rd,-37.855507,145.181761,(03) 8847 4000,True

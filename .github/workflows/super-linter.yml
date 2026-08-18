@@ -1,0 +1,55 @@
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+  packages: read
+  statuses: write
+
+jobs:
+  super-linter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # super-linter diffs against this to lint only changed files
+          # (VALIDATE_ALL_CODEBASE: false below) — needs real history, not
+          # the default shallow single-commit checkout.
+          fetch-depth: 0
+
+      - name: Super-linter
+        uses: super-linter/super-linter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: master
+          # Only lint files touched by this push/PR, not the whole existing
+          # codebase — this repo has no lint history yet, so a full-codebase
+          # run on day one would fail on everything at once rather than
+          # gating new changes. Flip to true later for a one-off baseline
+          # sweep once existing issues are cleaned up.
+          VALIDATE_ALL_CODEBASE: false
+
+          VALIDATE_PYTHON_BLACK: true
+          VALIDATE_PYTHON_ISORT: true
+          VALIDATE_PYTHON_FLAKE8: true
+          VALIDATE_PYTHON_MYPY: true
+          # Pylint is off by default: it's the most opinionated of the
+          # Python linters (naming/complexity/broad-except rules etc.) and
+          # this codebase's style hasn't been tuned against it. Turn on
+          # once a pylintrc exists to match this project's conventions.
+          VALIDATE_PYTHON_PYLINT: false
+
+          VALIDATE_YAML: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_JSON: true
+
+          # Local run artifacts and reverse-engineering tooling output —
+          # never lint-worthy source (data/ is committed scraped data,
+          # auth/ and .tools/ hold captured-credential/APK tooling).
+          FILTER_REGEX_EXCLUDE: (^|/)(data|auth|\.tools)/.*

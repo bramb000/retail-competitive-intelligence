@@ -80,6 +80,31 @@ class SessionContext(BaseModel):
         return (time.time() - self.created_at) > self.ttl_seconds
 
 
+class MobileSessionContext(BaseModel):
+    """Device-attestation headers captured live off the real Coles mobile app.
+
+    Unlike `SessionContext`'s cookies (harvested from an automatable browser
+    challenge), the app's `x-d-token` is opaque device-attestation output
+    produced by the app's own native code (see `Product.aisle_number`'s
+    comment) — this context can only be produced by
+    `hybrid_scraper.mobile_session` capturing one off the wire from a real
+    app session, never synthesized.
+    """
+
+    model_config = ConfigDict(frozen=False)
+
+    headers: Dict[str, str]
+    created_at: float
+    # Observed live: a captured token worked for an initial run then started
+    # 403ing on a follow-up run ~15-20 minutes later (see scrape_burwood.py's
+    # module docstring) — kept deliberately conservative relative to that
+    # observed ceiling.
+    ttl_seconds: float = 600.0
+
+    def is_expired(self) -> bool:
+        return (time.time() - self.created_at) > self.ttl_seconds
+
+
 class Product(BaseModel):
     """One scraped fact for a single SKU at a single store on a single day.
 

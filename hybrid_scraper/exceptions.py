@@ -71,3 +71,19 @@ class MaxRetriesExceededError(ScraperError):
         super().__init__(message)
         self.attempts = attempts
         self.last_error = last_error
+
+
+class MobileTokenCaptureError(ScraperError):
+    """Raised when MobileSessionRefresher can't capture a fresh x-d-token from the real app.
+
+    Covers adb/BlueStacks connectivity failures, the mitmproxy proxy not
+    being reachable from the guest, and the capture window elapsing with no
+    x-d-token observed — most often because the app never hit an
+    apigw.coles.com.au endpoint during the window. `hosts_seen_log` points at
+    every host the app *did* contact during the attempt, to help figure out
+    what screen needs navigating to next.
+    """
+
+    def __init__(self, message: str, hosts_seen_log: Optional[str] = None) -> None:
+        super().__init__(message)
+        self.hosts_seen_log = hosts_seen_log

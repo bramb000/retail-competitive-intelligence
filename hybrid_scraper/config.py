@@ -9,7 +9,7 @@ network tab) if a run starts 404ing.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from hybrid_scraper.models import RetailerName
 
@@ -19,8 +19,7 @@ from hybrid_scraper.models import RetailerName
 # fingerprint (real Chrome 120) won't match the UA string (a mismatch is
 # itself a bot signal some vendors check for).
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
 # Shared between engine.py and bootstrapper.py's curl_cffi fallback path —
@@ -125,4 +124,14 @@ SAMPLE_SUBURBS = [
     "Parramatta NSW",
     "Melbourne CBD VIC",
     "Brisbane CBD QLD",
+]
+
+# Store targets for the scheduled master scrape (top-level daily_scrape.py).
+# Edit this list to add/remove suburbs — each one is independently resolved
+# to its nearest Coles store AND its nearest Woolworths store (see
+# CurlCffiEngine.resolve_store_id); a suburb with only one retailer nearby
+# still yields whichever one resolves, rather than failing the whole list.
+DAILY_SCRAPE_SUBURBS: List[str] = [
+    "Ashfield NSW 2131",
+    "Burwood East VIC 3151",
 ]

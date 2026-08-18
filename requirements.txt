@@ -4,3 +4,9 @@ pydantic>=2.7.0
 duckdb>=1.0.0
 streamlit>=1.38.0
 pandas>=2.2.0
+# Local HTTPS-intercepting proxy used by hybrid_scraper.mobile_session to
+# capture the Coles mobile app's device-attestation token off a real,
+# already-logged-in BlueStacks session (see that module's docstring).
+mitmproxy>=12.0.0
+# Console progress bars/tables for long multi-store scrape runs (demo_scrape.py).
+rich>=13.0.0
