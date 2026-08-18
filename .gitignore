@@ -11,6 +11,7 @@ __pycache__/
 # Scraped data + logs — local run artifacts, not source.
 scraper_data.duckdb
 scraper.log
+pilot_mobile_checkpoint.json
 
 # Claude Code session-local state.
 .claude/

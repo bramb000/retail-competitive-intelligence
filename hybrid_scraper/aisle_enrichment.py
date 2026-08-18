@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import random
 from typing import Callable, Dict, List, Optional, TypeVar
 
 from curl_cffi.requests import AsyncSession
@@ -113,15 +114,31 @@ class MobileBatchFetcher:
     SKUs is ~80 batches, and firing every store's batches uncapped at once
     would burn the device-attestation identity's request budget in one
     uncontrolled burst.
+
+    `pace_min_seconds`/`pace_max_seconds` (both 0 by default, i.e. no
+    pacing) add a randomized delay *after* each batch completes and
+    *before* its semaphore slot is released for the next one — with
+    `max_concurrent_batches=1` this serializes every request into a slow,
+    jittered drip rather than a steady bot-like cadence. Added for the
+    multi-night 42-store pilot (2026-08): a fast, uncapped run is what
+    tripped Imperva's soft-block earlier; deliberately trading speed for
+    safety here since that run has days, not minutes, to finish in.
     """
 
-    def __init__(self, max_concurrent_batches: int = 5) -> None:
+    def __init__(
+        self,
+        max_concurrent_batches: int = 5,
+        pace_min_seconds: float = 0.0,
+        pace_max_seconds: float = 0.0,
+    ) -> None:
         self._headers = get_coles_app_headers()
         self._generation = 0
         self._refresh_lock = asyncio.Lock()
         self._batch_semaphore = asyncio.Semaphore(max_concurrent_batches)
         self._consecutive_timeouts = 0
         self.timed_out_batches = 0  # cumulative count, for run-end reporting
+        self._pace_min_seconds = pace_min_seconds
+        self._pace_max_seconds = max(pace_max_seconds, pace_min_seconds)
 
     async def _maybe_refresh(self, seen_generation: int) -> None:
         if not using_mobile_session():
@@ -224,6 +241,13 @@ class MobileBatchFetcher:
         async def _run_batch(batch: List[str]) -> None:
             async with self._batch_semaphore:
                 items = await self._fetch_batch_items(session, store_id, batch)
+                if self._pace_max_seconds > 0:
+                    # Deliberately still holding the semaphore slot during
+                    # this sleep — with max_concurrent_batches=1 that's what
+                    # turns this into a real minimum-interval pace rather
+                    # than just a concurrency cap (which alone doesn't stop
+                    # requests firing back-to-back the instant one finishes).
+                    await asyncio.sleep(random.uniform(self._pace_min_seconds, self._pace_max_seconds))
             for item in items:
                 parsed = parse_item(item)
                 if parsed is None:
