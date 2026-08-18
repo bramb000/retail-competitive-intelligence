@@ -19,7 +19,10 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
+
+if TYPE_CHECKING:
+    from rich.console import Console
 
 DEFAULT_LOG_FILE = "scraper.log"
 LOG_FORMAT = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
@@ -30,7 +33,7 @@ def configure_logging(
     console_level: int = logging.INFO,
     file_level: int = logging.DEBUG,
     log_file: Union[str, Path] = DEFAULT_LOG_FILE,
-    rich_console: Optional["Console"] = None,  # noqa: F821 - forward ref, see below
+    rich_console: Optional["Console"] = None,
 ) -> None:
     """Attach console + rotating-file handlers to the `hybrid_scraper` logger tree.
 

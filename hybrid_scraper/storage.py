@@ -731,6 +731,8 @@ class ProductStore:
             synthetic_date = run_to_synthetic_date[run_number]
             first = rows[0]
             retailer, _, native_store_id = store_label.partition(" - ")
+            if retailer not in ("Coles", "Woolworths"):
+                raise ValueError(f"Unrecognized retailer in legacy store label {store_label!r}: {retailer!r}")
             store_location = StoreLocation(
                 retailer=retailer,
                 store_id=native_store_id or store_label,

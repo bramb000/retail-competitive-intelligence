@@ -487,6 +487,7 @@ class CurlCffiEngine:
         state_filter: Optional[str],
     ) -> StoreLocation:
         config = RETAILER_CONFIGS["Coles"]
+        assert config.graphql_url is not None, "Coles config must define graphql_url"
         suggestions = await self._request(
             resolution_session,
             "POST",
@@ -544,6 +545,7 @@ class CurlCffiEngine:
         state_filter: Optional[str],
     ) -> StoreLocation:
         config = RETAILER_CONFIGS["Woolworths"]
+        assert config.store_suburb_search_url is not None, "Woolworths config must define store_suburb_search_url"
         suggestions = await self._request(
             resolution_session, "GET", config.store_suburb_search_url, params={"SearchTerm": term}
         )
@@ -554,6 +556,7 @@ class CurlCffiEngine:
         if suburb_match is None:
             raise BootstrapError(f"Woolworths StoreLocator/Suburbs found no suburb matching {term!r}")
 
+        assert config.store_nearby_url is not None, "Woolworths config must define store_nearby_url"
         stores_payload = await self._request(
             resolution_session,
             "GET",
