@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+# Unattended Ashfield scrape watchdog.
+# Keeps Coles + Woolworths scrapes running until checkpoints say complete.
+# WW runs as two parallel workers: Iris discovery (search) + Iris PDP (iris).
+#
+#   ./watch_ashfield                 # both banners, 8h chunks, forever until done
+#   ./watch_ashfield --coles-only
+#   ./watch_ashfield --ww-only
+#   ./watch_ashfield --max-hours 12
+#   ./watch_ashfield --status         # print once and exit
+#
+# Stop: kill the watchdog PID in .tools/ashfield_watchdog.pid (children keep
+# running), or: ./watch_ashfield --stop
+set -euo pipefail
+cd "$(dirname "$0")"
+ROOT="$(pwd)"
+TOOLS="$ROOT/.tools"
+mkdir -p "$TOOLS"
+PIDFILE="$TOOLS/ashfield_watchdog.pid"
+LOG="$ROOT/ashfield_watchdog.log"
+POLL_SECONDS="${WATCH_POLL_SECONDS:-60}"
+BACKOFF_SECONDS="${WATCH_BACKOFF_SECONDS:-120}"
+MAX_HOURS="${WATCH_MAX_HOURS:-8}"
+COLES=1
+WW=1
+STATUS_ONLY=0
+DO_STOP=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --coles-only) WW=0; shift ;;
+    --ww-only) COLES=0; shift ;;
+    --max-hours) MAX_HOURS="${2:?}"; shift 2 ;;
+    --max-hours=*) MAX_HOURS="${1#*=}"; shift ;;
+    --poll) POLL_SECONDS="${2:?}"; shift 2 ;;
+    --status) STATUS_ONLY=1; shift ;;
+    --stop) DO_STOP=1; shift ;;
+    -h|--help)
+      sed -n '2,16p' "$0"
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+log() {
+  local msg="$*"
+  printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$msg" | tee -a "$LOG"
+}
+
+coles_running() {
+  pgrep -f "scrape_ashfield_deep.py --banner coles --phase scrape" >/dev/null 2>&1
+}
+
+ww_search_running() {
+  pgrep -f "scrape_ashfield_deep.py --banner woolworths --phase scrape --ww-phase search" >/dev/null 2>&1
+}
+
+ww_iris_running() {
+  pgrep -f "scrape_ashfield_deep.py --banner woolworths --phase scrape --ww-phase iris" >/dev/null 2>&1
+}
+
+banner_complete() {
+  local banner="$1"
+  "$ROOT/.venv/bin/python" - "$banner" <<'PY'
+import json, sys
+from pathlib import Path
+banner = sys.argv[1]
+store = "791" if banner == "coles" else "1213"
+path = Path("lake/bronze") / banner / store / "checkpoint.json"
+if not path.exists():
+    sys.exit(1)
+cp = json.loads(path.read_text())
+if cp.get("stop_reason") == "complete":
+    sys.exit(0)
+if banner == "coles":
+    nxt = int(cp.get("next_batch_index") or 0)
+    total = int(cp.get("batches_total") or 2962)
+    sys.exit(0 if nxt >= total else 1)
+# woolworths
+if cp.get("search_complete") and cp.get("discovered_n"):
+    discovered = cp.get("discovered_ids") or []
+    iris = set(cp.get("iris_completed_ids") or [])
+    if discovered and all(str(x) in iris for x in discovered):
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+
+print_status() {
+  "$ROOT/.venv/bin/python" <<'PY'
+import json
+from pathlib import Path
+
+def load(banner, store):
+    p = Path(f"lake/bronze/{banner}/{store}/checkpoint.json")
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text())
+
+coles = load("coles", "791")
+ww = load("woolworths", "1213")
+nxt = int(coles.get("next_batch_index") or 0)
+total = int(coles.get("batches_total") or 2962)
+print(f"coles: batch {nxt}/{total} ({100*nxt/total:.1f}%) stop={coles.get('stop_reason')} updated={coles.get('updated_at')}")
+terms_done = len(ww.get("completed_terms") or [])
+terms_total = int(ww.get("search_terms_total") or 0) or 1158
+print(
+    f"ww: mode={ww.get('discovery_mode')} discovered={ww.get('discovered_n')} terms={terms_done}/{terms_total} "
+    f"iris={len(ww.get('iris_completed_ids') or [])} "
+    f"search_complete={ww.get('search_complete')} stop={ww.get('stop_reason')} "
+    f"in_progress={ww.get('in_progress_term')} p={ww.get('in_progress_page')} "
+    f"updated={ww.get('updated_at')}"
+)
+PY
+  echo -n "coles_proc: "; coles_running && echo running || echo stopped
+  echo -n "ww_search_proc: "; ww_search_running && echo running || echo stopped
+  echo -n "ww_iris_proc: "; ww_iris_running && echo running || echo stopped
+  if [[ -f "$PIDFILE" ]]; then
+    echo "watchdog_pid: $(cat "$PIDFILE") (alive=$(kill -0 "$(cat "$PIDFILE")" 2>/dev/null && echo yes || echo no))"
+  else
+    echo "watchdog_pid: (none)"
+  fi
+}
+
+start_coles() {
+  local logfile="$ROOT/ashfield_coles.log"
+  # Never inherit a WW/parent EMULATOR_PROXY_PORT into Coles.
+  env -u EMULATOR_PROXY_PORT -u WOOLWORTHS_MITM_PROXY \
+    nohup "$ROOT/scrape_ashfield" --banner coles --max-hours "$MAX_HOURS" --skip-session-warmup \
+    >>"$logfile" 2>&1 &
+  disown $! 2>/dev/null || true
+  local pid=$!
+  log "started coles pid=$pid max_hours=$MAX_HOURS log=$logfile"
+  sleep 2
+}
+
+start_ww_search() {
+  local logfile="$ROOT/ashfield_ww_search.log"
+  env EMULATOR_PROXY_PORT=8083 WOOLWORTHS_MITM_PROXY=http://127.0.0.1:8083 \
+    nohup "$ROOT/scrape_ashfield" --banner woolworths --ww-phase search --max-hours "$MAX_HOURS" --skip-session-warmup \
+    >>"$logfile" 2>&1 &
+  disown $! 2>/dev/null || true
+  local pid=$!
+  log "started ww_search pid=$pid max_hours=$MAX_HOURS log=$logfile"
+  sleep 2
+}
+
+start_ww_iris() {
+  local logfile="$ROOT/ashfield_ww_iris.log"
+  env EMULATOR_PROXY_PORT=8083 WOOLWORTHS_MITM_PROXY=http://127.0.0.1:8083 \
+    nohup "$ROOT/scrape_ashfield" --banner woolworths --ww-phase iris --max-hours "$MAX_HOURS" --skip-session-warmup \
+    >>"$logfile" 2>&1 &
+  disown $! 2>/dev/null || true
+  local pid=$!
+  log "started ww_iris pid=$pid max_hours=$MAX_HOURS log=$logfile"
+  sleep 2
+}
+
+if [[ "$DO_STOP" -eq 1 ]]; then
+  if [[ -f "$PIDFILE" ]]; then
+    old=$(cat "$PIDFILE")
+    kill "$old" 2>/dev/null || true
+    rm -f "$PIDFILE"
+    log "watchdog stopped pid=$old (scrape children left running)"
+  else
+    echo "no watchdog pidfile"
+  fi
+  exit 0
+fi
+
+if [[ "$STATUS_ONLY" -eq 1 ]]; then
+  print_status
+  exit 0
+fi
+
+if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+  echo "watchdog already running pid=$(cat "$PIDFILE")" >&2
+  echo "use: ./watch_ashfield --status   or   ./watch_ashfield --stop" >&2
+  exit 1
+fi
+
+echo $$ >"$PIDFILE"
+trap 'rm -f "$PIDFILE"; log "watchdog exiting"' EXIT
+log "watchdog start pid=$$ coles=$COLES ww=$WW max_hours=$MAX_HOURS poll=${POLL_SECONDS}s (ww=search+iris parallel)"
+
+if [[ "$WW" -eq 1 ]]; then
+  if "$ROOT/.venv/bin/python" "$ROOT/scripts/ensure_ww_mitm.py" >>"$LOG" 2>&1; then
+    log "ww mitm proxy ready on :8083"
+  else
+    log "ww mitm proxy start failed — iris may hit CDN poison"
+  fi
+fi
+
+fail_coles=0
+fail_ww_search=0
+fail_ww_iris=0
+
+while true; do
+  all_done=1
+
+  if [[ "$COLES" -eq 1 ]]; then
+    if banner_complete coles; then
+      log "coles complete — no longer restarting"
+    else
+      all_done=0
+      if coles_running; then
+        fail_coles=0
+      else
+        fail_coles=$((fail_coles + 1))
+        log "coles not running (streak=${fail_coles}) — restarting"
+        start_coles || log "coles start failed"
+        if [[ "$fail_coles" -ge 3 ]]; then
+          log "coles rapid-exit backoff ${BACKOFF_SECONDS}s"
+          sleep "$BACKOFF_SECONDS"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "$WW" -eq 1 ]]; then
+    if banner_complete woolworths; then
+      log "woolworths complete — no longer restarting"
+    else
+      all_done=0
+      if ww_search_running; then
+        fail_ww_search=0
+      else
+        fail_ww_search=$((fail_ww_search + 1))
+        log "ww_search not running (streak=${fail_ww_search}) — restarting"
+        start_ww_search || log "ww_search start failed"
+        if [[ "$fail_ww_search" -ge 3 ]]; then
+          log "ww_search rapid-exit backoff ${BACKOFF_SECONDS}s"
+          sleep "$BACKOFF_SECONDS"
+        fi
+      fi
+      if ww_iris_running; then
+        fail_ww_iris=0
+      else
+        fail_ww_iris=$((fail_ww_iris + 1))
+        log "ww_iris not running (streak=${fail_ww_iris}) — restarting"
+        start_ww_iris || log "ww_iris start failed"
+        if [[ "$fail_ww_iris" -ge 3 ]]; then
+          log "ww_iris rapid-exit backoff ${BACKOFF_SECONDS}s"
+          sleep "$BACKOFF_SECONDS"
+        fi
+      fi
+    fi
+  fi
+
+  if [[ "$all_done" -eq 1 ]]; then
+    log "all watched banners complete — watchdog done"
+    print_status | tee -a "$LOG"
+    exit 0
+  fi
+
+  sleep "$POLL_SECONDS"
+done

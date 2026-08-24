@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Ashfield scrapers. Defaults to Coles; pass --banner woolworths for WW.
+# Safe to run Coles + WW in two terminals: steady-state HTTP is parallel;
+# emulator/mitm token captures take a cross-process lock so they queue.
+#
+#   ./scrape_ashfield --max-hours 8
+#   ./scrape_ashfield --banner woolworths --max-hours 8 --skip-session-warmup
+set -euo pipefail
+cd "$(dirname "$0")"
+export EMULATOR_AVD="${EMULATOR_AVD:-WW_Rootable}"
+export EMULATOR_DEVICE_SERIAL="${EMULATOR_DEVICE_SERIAL:-emulator-5554}"
+export COLES_HUMAN_EXTRA_PAUSE="${COLES_HUMAN_EXTRA_PAUSE:-0}"
+
+banner="coles"
+phase="scrape"
+ww_phase=""
+pass_args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --banner)
+      banner="${2:-coles}"
+      shift 2
+      ;;
+    --banner=*)
+      banner="${1#*=}"
+      shift
+      ;;
+    --phase)
+      phase="${2:-scrape}"
+      shift 2
+      ;;
+    --phase=*)
+      phase="${1#*=}"
+      shift
+      ;;
+    --ww-phase)
+      ww_phase="${2:-}"
+      shift 2
+      ;;
+    --ww-phase=*)
+      ww_phase="${1#*=}"
+      shift
+      ;;
+    *)
+      pass_args+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# Separate mitm listen ports — always force per banner (don't inherit a sibling worker's port).
+if [[ "$banner" == "woolworths" ]]; then
+  export EMULATOR_PROXY_PORT=8083
+  export WOOLWORTHS_MITM_PROXY="${WOOLWORTHS_MITM_PROXY:-http://127.0.0.1:8083}"
+else
+  export EMULATOR_PROXY_PORT=8082
+  unset WOOLWORTHS_MITM_PROXY
+fi
+
+cmd=(.venv/bin/python scrape_ashfield_deep.py --banner "$banner" --phase "$phase")
+if [[ -n "$ww_phase" ]]; then
+  cmd+=(--ww-phase "$ww_phase")
+fi
+if ((${#pass_args[@]})); then
+  cmd+=("${pass_args[@]}")
+fi
+exec "${cmd[@]}"

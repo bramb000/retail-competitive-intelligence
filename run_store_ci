@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Export store CI JSON and open the Planoverse store scoreboard.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+.venv/bin/python scripts/export_store_ci_data.py
+cd apps/store-ci
+if [[ ! -d node_modules ]]; then
+  npm install
+fi
+npm run dev

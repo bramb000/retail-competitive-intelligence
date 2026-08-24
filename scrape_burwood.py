@@ -12,7 +12,7 @@ app's backend, not `www.coles.com.au`) behind an Incapsula/Imperva WAF that
 requires an `x-d-token` device-attestation header — an opaque blob only the
 real app's own code can produce, so this project has never reverse-engineered
 a generator for it. Instead, `hybrid_scraper.mobile_session` captures a fresh
-one live off the real (already-logged-in) Coles app running in BlueStacks —
+one live off the real (already-logged-in) Coles app running in Android Emulator —
 see that module's docstring for the full mechanism — on every run by
 default, and again automatically mid-run if a batch 401/403s (the captured
 token's TTL is short and unpredictable, confirmed live at ~15-20min).

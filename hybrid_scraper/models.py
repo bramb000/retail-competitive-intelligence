@@ -151,10 +151,12 @@ class Product(BaseModel):
     # In-store physical location. Confirmed live: Coles' *website* product
     # schema has `locations[].aisle`/`.shelf` fields but they were null for
     # every sampled product ("Aisle information is not available for this
-    # product"); Woolworths' product-detail response has no physical
-    # aisle/bay field at all (its `PrimaryCategory.Aisle` is an unrelated
-    # *online* "shop by aisle" taxonomy label, e.g. "full cream milk", not a
-    # physical in-store position).
+    # product"); Woolworths' *website* product-detail response has no physical
+    # aisle/bay field (its `PrimaryCategory.Aisle` is an unrelated *online*
+    # "shop by aisle" taxonomy label, e.g. "full cream milk", not a physical
+    # in-store position). Woolworths' *mobile* GraphQL ProductCard does expose
+    # real placement via Product Finder / in-store mode — see
+    # `hybrid_scraper.woolworths_aisle_enrichment` and the WW block below.
     #
     # This IS a real, separate native-app-only feature on Coles' side —
     # internally called "Wayfinding" (`com.coles.android.instorewayfinding`,
@@ -202,13 +204,34 @@ class Product(BaseModel):
     # generates this token client-side is NOT yet reverse-engineered — that
     # is the next real blocker before this can be called outside the app,
     # and is likely comparable in difficulty to the Akamai problem already
-    # blocking Woolworths in this project.
+    # blocking Woolworths' website path in this project.
+    #
+    # --- Woolworths Product Finder / in-store placement (mobile GraphQL) ---
+    # Confirmed via apk-mitm + mitmproxy on com.woolworths 26.16.0 and APK
+    # GraphQL fragments (`inStoreLocation` on ProductCard):
+    #
+    #   POST https://prod.mobile-api.woolworths.com.au/hermes/iris/v1/graphql
+    #   Auth: Bearer <access_token from POST .../wow/v2/commerce/guest>
+    #         x-api-key: BuildConfig.SHOP_IRIS_API_KEY (static app client key)
+    #
+    # Guest mint (no emulator required once the key is known):
+    #   POST .../wow/v2/commerce/guest
+    #   body: {"device_auth_token": "<uuid>", "postcode": "2131"}
+    #
+    # Placement fields on ProductCard:
+    #   inStoreLocation.details.{aisleNumber,aisleSide,bayNumber,x,y,z,...}
+    #   inStoreLocation.displayInfo.locationText
+    # Lookups (live app 26.16.0): `productDetailsPage` for exact SKUs
+    # (INSTORE + storeId) and `productList` (type=search) for discovery.
+    # Documents live under hybrid_scraper/woolworths_queries/. Route Iris
+    # GraphQL through local mitmdump and attach captured `x-acf-sensor-data`
+    # to avoid Akamai CDN-poisoned responses. ProductCard.price is cents.
     aisle_number: Optional[str] = None
     bay_number: Optional[str] = None
     # The rest of the app's `locations[]` entry beyond a bare aisle/side —
     # `facing`/`order` as captured, `indoor_x`/`indoor_y` from
-    # `indoorCoordinates.productX`/`.productY` (the precise store-map pin
-    # position). Coles-only, same source/caveats as aisle_number above.
+    # `indoorCoordinates.productX`/`.productY` (Coles) or inStoreLocation
+    # details.x/y (Woolworths).
     aisle_facing: Optional[int] = None
     aisle_order: Optional[float] = None
     indoor_x: Optional[float] = None

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Deprecated: Personal Care-only dashboard.
+# Macro store CI (category × location) is the product — redirect.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+echo "ashfield-pc is deprecated. Launching store CI (category × location)…" >&2
+exec "$ROOT/run_store_ci"

@@ -22,10 +22,10 @@ scheduler-friendly:
 Prerequisites for a real run:
     pip install -r requirements.txt
     playwright install chromium
-And, for the Coles aisle-enrichment pass specifically: BlueStacks running
+And, for the Coles aisle-enrichment pass specifically: Android Emulator running
 with the Coles app already logged in (see
 hybrid_scraper/mobile_session.py's docstring for the one-time setup this
-assumes). If BlueStacks isn't reachable, that pass is skipped per-store with
+assumes). If Android Emulator isn't reachable, that pass is skipped per-store with
 a warning rather than failing the run — the base price/product scrape above
 it doesn't depend on it.
 
@@ -105,7 +105,7 @@ async def _enrich_coles_stores(
 
     Wrapped in its own per-store try/except (on top of
     fetch_coles_instore_locations' own internal per-batch handling) — a
-    BlueStacks problem (not running, capture timeout) shouldn't fail the
+    Android Emulator problem (not running, capture timeout) shouldn't fail the
     daily run, since the base price/product scrape above already succeeded
     and is independently valuable without aisle data.
     """

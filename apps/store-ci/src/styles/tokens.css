@@ -1,0 +1,66 @@
+:root {
+  --plv-purple: #7b4fe8;
+  --plv-purple-light: #c1a5ff;
+  --plv-purple-pale: #c4b3f3;
+  --plv-pink: #ff44cc;
+  --plv-ink: #090909;
+  --plv-dark: #111;
+  --plv-mid: #595959;
+  --plv-cream: #f6f0e7;
+  --plv-text-base: 1.05rem;
+  --plv-leading: 1.45;
+  --plv-tracking: -0.01em;
+  --plv-radius-sm: 8px;
+  --plv-radius-md: 10px;
+  --plv-radius-lg: 12px;
+  --plv-radius-xl: 20px;
+  --plv-trans-fast: 0.2s;
+  --coles: #e87722;
+  --ww: #17823c;
+  --coles-soft: rgba(232, 119, 34, 0.15);
+  --ww-soft: rgba(23, 130, 60, 0.15);
+  --plv-purple-soft: rgba(123, 79, 232, 0.14);
+  --plv-line: rgba(9, 9, 9, 0.1);
+  --plv-line-soft: rgba(9, 9, 9, 0.06);
+  --surface: #ffffff;
+  --page-bg: #ede9fa;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: var(--plv-text-base);
+  line-height: var(--plv-leading);
+  letter-spacing: var(--plv-tracking);
+  color: var(--plv-ink);
+  background: var(--page-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

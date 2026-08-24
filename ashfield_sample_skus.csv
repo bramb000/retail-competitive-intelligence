@@ -1,0 +1,6 @@
+retailer,store_id,store_name,suburb_name,state,postcode,retailer_product_id,name,clean_brand,pack_size,clean_uom,price_display,price_per_uom,aisle_number,bay_number,aisle_facing,aisle_order,indoor_x,indoor_y,stock_status
+Coles,Coles - 791,Coles Ashfield,Ashfield,NSW,2131,7667368,Australian Full Cream Long Life Milk,Coles,1.0,L,1.85,$1.85/ 1L,1,Left,8,1.0,1881.9122,3089.7532,In Stock
+Coles,Coles - 791,Coles Ashfield,Ashfield,NSW,2131,329607,Tim Tam Chocolate Biscuits Original,Arnott's,200.0,g,6.0,$3.00/ 100g,,,,,,,In Stock
+Coles,Coles - 791,Coles Ashfield,Ashfield,NSW,2131,3646151,Soft White Sandwich,Coles,700.0,g,2.8,$0.40/ 100g,,,,,,,In Stock
+Woolworths,Woolworths - 1213,Woolworths Ashfield,Ashfield,NSW,2131,36066,Arnott's Tim Tam Original,Arnott's,200.0,g,6.0,,4,12,,,,,IN_STOCK
+Woolworths,Woolworths - 1213,Woolworths Ashfield,Ashfield,NSW,2131,277728,Woolworths Soft White Sandwich Bread,Woolworths,650.0,g,2.5,,3,14,,,,,IN_STOCK

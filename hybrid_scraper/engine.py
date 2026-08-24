@@ -29,7 +29,7 @@ import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from curl_cffi.requests import AsyncSession
 
@@ -62,8 +62,8 @@ _COLES_MOBILE_CATEGORIES_URL = "https://apigw.coles.com.au/digital/colesappbff/v
 # the top level so a legitimately-named subcategory elsewhere isn't skipped.
 _COLES_PROMOTIONAL_TOP_LEVEL_MARKERS = ("special", "value")
 
-# Guards get_coles_app_headers() (which may synchronously trigger a live
-# BlueStacks capture on a cache miss) so two stores' category-tree fetches
+# Guards get_coles_app_headers() (which may synchronously trigger an
+# Android Emulator capture on a cache miss) so two stores' category-tree fetches
 # running concurrently don't both try to bind mitmdump's proxy port at once
 # — the same port-conflict risk `aisle_enrichment.py`'s single-flight
 # refresh lock protects against, for this separate call site.
@@ -712,6 +712,7 @@ class CurlCffiEngine:
         session_context: SessionContext,
         category: CategoryNode,
         page: int,
+        on_raw_payload: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[List[Dict[str, Any]], bool]:
         """Fetch one page of search results for `category.search_term`.
 
@@ -756,6 +757,9 @@ class CurlCffiEngine:
             total = payload.get("SearchResultsCount", 0)
             has_more = (page * config.page_size) < total
             parse_item = self._parse_woolworths_item
+
+        if on_raw_payload is not None:
+            on_raw_payload(payload)
 
         parsed: List[Dict[str, Any]] = []
         for raw_item in items:

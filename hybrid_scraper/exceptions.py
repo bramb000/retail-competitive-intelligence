@@ -76,7 +76,7 @@ class MaxRetriesExceededError(ScraperError):
 class MobileTokenCaptureError(ScraperError):
     """Raised when MobileSessionRefresher can't capture a fresh x-d-token from the real app.
 
-    Covers adb/BlueStacks connectivity failures, the mitmproxy proxy not
+    Covers adb/Android Emulator connectivity failures, the mitmproxy proxy not
     being reachable from the guest, and the capture window elapsing with no
     x-d-token observed — most often because the app never hit an
     apigw.coles.com.au endpoint during the window. `hosts_seen_log` points at

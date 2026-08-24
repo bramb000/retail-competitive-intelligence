@@ -22,7 +22,7 @@ with no Playwright/curl_cffi website engine involved at all.
 
 Caveat carried over unchanged from `Product.aisle_number`'s docstring in
 `models.py`: this still depends on a live `x-d-token` device-attestation
-header, obtainable only by capturing one off the real (BlueStacks-hosted)
+header, obtainable only by capturing one off the real (Android Emulator-hosted)
 app via `hybrid_scraper.mobile_session` — not reverse-engineered, and not
 to be reverse-engineered without the user explicitly re-confirming that.
 """

@@ -1,0 +1,17 @@
+coles_category_slug,woolworths_category,woolworths_subcategory,match_support,vote_share,source,notes
+fruit-vegetables,Fruit & Vegetables,,manual,1.0,override,Seed glossary — refine when Iris produce lands
+meat-seafood,Meat Seafood & Deli,Meat,manual,1.0,override,Seed glossary
+deli,Meat Seafood & Deli,Deli,manual,1.0,override,Seed glossary
+bakery,Bakery,,manual,1.0,override,Seed glossary
+dairy-eggs-fridge,"Dairy, Eggs & Fridge",,manual,1.0,override,Seed glossary — literal WW L0
+frozen,Freezer,,manual,1.0,override,WW Freezer L0
+chips-chocolates-snacks,Pantry,Snacks,manual,1.0,override,Seed glossary
+pantry,Pantry,,manual,1.0,override,Seed glossary
+dietary-world-foods,International Foods,,manual,1.0,override,Prefer International Foods when present
+drinks,Drinks,,manual,1.0,override,Seed glossary
+health-beauty,Personal Care,,manual,1.0,override,Primary map; Beauty/Health may split later
+cleaning-laundry,Cleaning & Maintenance,,manual,1.0,override,Seed glossary
+home-garden,Home & Lifestyle,,manual,1.0,override,Seed glossary
+baby,Baby,,manual,1.0,override,Seed glossary
+pet,Pet,,manual,1.0,override,Seed glossary
+liquorland,Liquor,,manual,1.0,override,Optional department

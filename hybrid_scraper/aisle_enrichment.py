@@ -28,8 +28,8 @@ from curl_cffi.requests import AsyncSession
 from curl_cffi.requests.exceptions import RequestException
 
 from hybrid_scraper.config import IMPERSONATE_TARGET
-from hybrid_scraper.exceptions import NetworkError
-from hybrid_scraper.mobile_session import get_mobile_session
+from hybrid_scraper.exceptions import AuthExpiredError, MobileTokenCaptureError, NetworkError
+from hybrid_scraper.mobile_session import get_mobile_session, pool_fresh_count
 from hybrid_scraper.storage import AisleEnrichment
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ _MAX_CONSECUTIVE_TIMEOUTS = 8
 T = TypeVar("T")
 
 # Only used when COLES_APP_SUBSCRIPTION_KEY/COLES_APP_X_D_TOKEN env vars
-# override the BlueStacks capture (see get_coles_app_headers) — these are
+# override the Android Emulator capture (see get_coles_app_headers) — these are
 # the device-identity fields captured alongside the original manual token,
 # app v6.84.0. If overriding with a token from a different app
 # install/device, replace these too (they're sent as real request headers,
@@ -78,7 +78,7 @@ def get_coles_app_headers(force_refresh: bool = False) -> Dict[str, str]:
     """Build headers for apigw.coles.com.au.
 
     Prefers COLES_APP_SUBSCRIPTION_KEY/COLES_APP_X_D_TOKEN env vars (reuse a
-    manually-captured token without touching BlueStacks at all); falls back
+    manually-captured token without touching Android Emulator at all); falls back
     to `hybrid_scraper.mobile_session.get_mobile_session` — a cached capture
     if still fresh, otherwise a brand-new live one.
     """
@@ -91,7 +91,11 @@ def get_coles_app_headers(force_refresh: bool = False) -> Dict[str, str]:
             "x-d-token": x_d_token,
         }
     else:
-        headers = get_mobile_session(force_refresh=force_refresh).headers
+        headers = get_mobile_session(
+            force_refresh=force_refresh,
+            capture_timeout=150.0,
+            allow_stale=not force_refresh,
+        ).headers
     return {**headers, "content-type": "application/json; charset=utf-8", "accept-encoding": "gzip"}
 
 
@@ -103,7 +107,7 @@ class MobileBatchFetcher:
     per logical run (whether that run covers one store or many) and reuse
     it for every store, rather than one instance per store. The captured
     `x-d-token` has a short, unpredictable TTL (confirmed live: ~15-20min);
-    sharing state means a 401/403 anywhere triggers exactly ONE BlueStacks
+    sharing state means a 401/403 anywhere triggers exactly ONE Android Emulator
     re-capture (via `_refresh_lock` + `_generation`'s single-flight guard),
     with every other in-flight batch just waiting for that result and
     retrying — two concurrent captures would otherwise both try to bind
@@ -139,15 +143,72 @@ class MobileBatchFetcher:
         self.timed_out_batches = 0  # cumulative count, for run-end reporting
         self._pace_min_seconds = pace_min_seconds
         self._pace_max_seconds = max(pace_max_seconds, pace_min_seconds)
+        self._auth_failures = 0
+        self._max_auth_recoveries = 3
+
+    async def _human_pace_sleep(self) -> None:
+        """Randomized inter-request gap: triangular mid-bias + rare short pause.
+
+        Extra "distraction" pauses are off when COLES_HUMAN_EXTRA_PAUSE=0 (default
+        for Ashfield deep scrape speed targets), otherwise ~1 in 40 batches get
+        a short bump so pacing isn't perfectly metronomic.
+        """
+        if self._pace_max_seconds <= 0:
+            return
+        mode = (self._pace_min_seconds + self._pace_max_seconds) / 2.0
+        delay = random.triangular(self._pace_min_seconds, self._pace_max_seconds, mode)
+        extra_on = os.environ.get("COLES_HUMAN_EXTRA_PAUSE", "0").strip() not in ("0", "false", "False", "")
+        if extra_on and random.random() < (1.0 / 40.0):
+            extra = random.uniform(8.0, 25.0)
+            logger.info(
+                "human-like extra pause base=%.1fs extra=%.1fs total=%.1fs",
+                delay,
+                extra,
+                delay + extra,
+            )
+            delay += extra
+        await asyncio.sleep(delay)
+
+    async def _pause_and_recreate_session(self) -> None:
+        """On 403: pause, try pooled token, else mint a fresh one. Never keep a dead token."""
+        pause = random.uniform(20.0, 45.0)
+        logger.warning(
+            "coles auth expired — pausing %.0fs then recreating token (pool_fresh=%d)",
+            pause,
+            pool_fresh_count(),
+        )
+        await asyncio.sleep(pause)
+        try:
+            session = await asyncio.to_thread(
+                lambda: get_mobile_session(force_refresh=True, capture_timeout=150.0, allow_stale=False)
+            )
+        except MobileTokenCaptureError as exc:
+            raise AuthExpiredError(
+                f"Coles token recreate failed after pause: {exc}",
+                status_code=403,
+            ) from exc
+        self._headers = {
+            **session.headers,
+            "content-type": "application/json; charset=utf-8",
+            "accept-encoding": "gzip",
+        }
+        self._generation += 1
+        self._auth_failures = 0
+        logger.info("coles auth recreated generation=%d headers=%d", self._generation, len(self._headers))
 
     async def _maybe_refresh(self, seen_generation: int) -> None:
         if not using_mobile_session():
             return  # env-var override mode has no way to mint a new token
         async with self._refresh_lock:
-            if self._generation == seen_generation:
-                logger.warning("Coles app session appears expired — forcing a fresh BlueStacks capture")
-                self._headers = get_coles_app_headers(force_refresh=True)
-                self._generation += 1
+            if self._generation != seen_generation:
+                return  # another coroutine already refreshed
+            self._auth_failures += 1
+            if self._auth_failures > self._max_auth_recoveries:
+                raise AuthExpiredError(
+                    f"Coles auth recovery failed {self._auth_failures} times — stopping to avoid empty batches",
+                    status_code=403,
+                )
+            await self._pause_and_recreate_session()
 
     async def _fetch_batch_items(
         self, session: AsyncSession, store_id: str, batch: List[str], retry_on_auth_failure: bool = True
@@ -169,21 +230,6 @@ class MobileBatchFetcher:
                 timeout=_REQUEST_HARD_TIMEOUT_SECONDS,
             )
         except (asyncio.TimeoutError, RequestException) as exc:
-            # Two distinct failure modes land here, both treated the same
-            # way — a single bad batch must not sink the other few thousand
-            # in the same store's fetch (they're independent `asyncio.gather`
-            # tasks; an uncaught exception in one cancels every sibling task
-            # and re-raises, which is what silently lost an entire store's
-            # 3000 SKUs in the 2026-08-18 stress test before this except
-            # clause covered `RequestException` too):
-            #   1. asyncio.TimeoutError — our own `_REQUEST_HARD_TIMEOUT_SECONDS`
-            #      backstop fired because the request never returned.
-            #   2. RequestException — curl_cffi's own internal timeout/
-            #      connection error fired first (confirmed live: "curl: (28)
-            #      Operation timed out after 59730ms" — curl's own timeout
-            #      clearly isn't bounded by the `timeout=20` kwarg here, and
-            #      is not a plain asyncio.TimeoutError, so it needs its own
-            #      except arm rather than being folded into the case above).
             self.timed_out_batches += 1
             self._consecutive_timeouts += 1
             logger.warning(
@@ -201,9 +247,16 @@ class MobileBatchFetcher:
                 ) from exc
             return []
         self._consecutive_timeouts = 0
-        if response.status_code in (401, 403) and retry_on_auth_failure:
-            await self._maybe_refresh(current_generation)
-            return await self._fetch_batch_items(session, store_id, batch, retry_on_auth_failure=False)
+        if response.status_code in (401, 403):
+            if retry_on_auth_failure:
+                await self._maybe_refresh(current_generation)
+                return await self._fetch_batch_items(session, store_id, batch, retry_on_auth_failure=False)
+            # Refresh already tried and this request still unauthorized — stop the run.
+            raise AuthExpiredError(
+                f"Coles products/list still {response.status_code} after token recreate "
+                f"(store_id={store_id}, skus={batch[:3]}…)",
+                status_code=response.status_code,
+            )
         if response.status_code != 200:
             logger.warning(
                 "Coles mobile product batch failed store_id=%s status=%d skus=%s body=%s",
@@ -241,13 +294,9 @@ class MobileBatchFetcher:
         async def _run_batch(batch: List[str]) -> None:
             async with self._batch_semaphore:
                 items = await self._fetch_batch_items(session, store_id, batch)
-                if self._pace_max_seconds > 0:
-                    # Deliberately still holding the semaphore slot during
-                    # this sleep — with max_concurrent_batches=1 that's what
-                    # turns this into a real minimum-interval pace rather
-                    # than just a concurrency cap (which alone doesn't stop
-                    # requests firing back-to-back the instant one finishes).
-                    await asyncio.sleep(random.uniform(self._pace_min_seconds, self._pace_max_seconds))
+                # Deliberately still holding the semaphore slot during this sleep —
+                # with max_concurrent_batches=1 that's a real minimum-interval pace.
+                await self._human_pace_sleep()
             for item in items:
                 parsed = parse_item(item)
                 if parsed is None:
@@ -259,6 +308,64 @@ class MobileBatchFetcher:
 
         batches = [skus[i : i + BATCH_SIZE] for i in range(0, len(skus), BATCH_SIZE)]
         await asyncio.gather(*(_run_batch(batch) for batch in batches))
+        return results
+
+    async def fetch_sequential(
+        self,
+        session: AsyncSession,
+        store_id: str,
+        skus: List[str],
+        parse_item: Callable[[Dict], Optional[T]],
+        start_batch_index: int = 0,
+        on_raw_batch: Optional[Callable[[int, List[str], List[Dict]], None]] = None,
+        on_batch_done: Optional[Callable[[int], None]] = None,
+        should_stop: Optional[Callable[[], bool]] = None,
+    ) -> List[T]:
+        """Like `fetch`, but strictly sequential and resumable by batch index.
+
+        Used by the Ashfield deep scrape so a Ctrl+C / time-budget stop can
+        resume without re-hitting already-completed batches. `on_raw_batch`
+        receives (batch_index, sku_batch, raw_result_items) for bronze writes.
+        """
+        batches = [skus[i : i + BATCH_SIZE] for i in range(0, len(skus), BATCH_SIZE)]
+        results: List[T] = []
+        logger.info(
+            "fetch_sequential start store_id=%s batches=%d start_batch_index=%d skus=%d pace=%.1f-%.1fs",
+            store_id,
+            len(batches),
+            start_batch_index,
+            len(skus),
+            self._pace_min_seconds,
+            self._pace_max_seconds,
+        )
+        for batch_index, batch in enumerate(batches):
+            if batch_index < start_batch_index:
+                continue
+            if should_stop is not None and should_stop():
+                logger.warning(
+                    "fetch_sequential stop requested store_id=%s at batch_index=%d/%d",
+                    store_id,
+                    batch_index,
+                    len(batches),
+                )
+                break
+            async with self._batch_semaphore:
+                items = await self._fetch_batch_items(session, store_id, batch)
+                await self._human_pace_sleep()
+            if on_raw_batch is not None:
+                on_raw_batch(batch_index, batch, items)
+            for item in items:
+                parsed = parse_item(item)
+                if parsed is not None:
+                    results.append(parsed)
+            if on_batch_done is not None:
+                on_batch_done(batch_index)
+        logger.info(
+            "fetch_sequential done store_id=%s parsed=%d timed_out_batches=%d",
+            store_id,
+            len(results),
+            self.timed_out_batches,
+        )
         return results
 
 

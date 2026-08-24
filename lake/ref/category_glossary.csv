@@ -1,0 +1,17 @@
+shared_label,coles_slug,coles_label,ww_label,priority,notes
+Fruit & Vegetables,fruit-vegetables,Fruit & Vegetables,Fruit & Vegetables,10,WW L0-style; confirm when Iris has produce
+Meat Seafood & Deli,meat-seafood,Meat & Seafood,Meat Seafood & Deli,20,Many-to-one with deli
+Meat Seafood & Deli,deli,Deli,Meat Seafood & Deli,30,
+Bakery,bakery,Bakery,Bakery,40,
+Dairy Eggs & Fridge,dairy-eggs-fridge,Dairy Eggs & Fridge,"Dairy, Eggs & Fridge",50,Shared label uses Coles wording; WW alias has comma
+Frozen,frozen,Frozen,Freezer,60,WW often labels Freezer
+Pantry,chips-chocolates-snacks,Chips Chocolates & Snacks,Pantry,70,Many-to-one into Pantry
+Pantry,pantry,Pantry,Pantry,80,
+Pantry,dietary-world-foods,Dietary & World Foods,International Foods,90,WW International Foods when present; else Pantry
+Drinks,drinks,Drinks,Drinks,100,
+Personal Care,health-beauty,Health & Beauty,Personal Care,110,Coles health-beauty spans Personal Care + Beauty + Health
+Cleaning & Maintenance,cleaning-laundry,Cleaning & Laundry,Cleaning & Maintenance,120,
+Home & Lifestyle,home-garden,Home & Garden,Home & Lifestyle,130,
+Baby,baby,Baby,Baby,140,
+Pet,pet,Pet,Pet,150,
+Liquor,liquorland,Liquorland,Liquor,160,Only if WW liquor present at store

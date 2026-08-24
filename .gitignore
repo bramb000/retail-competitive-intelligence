@@ -12,6 +12,25 @@ __pycache__/
 scraper_data.duckdb
 scraper.log
 pilot_mobile_checkpoint.json
+ashfield_deep.log
+ashfield_deep.log.*
+ashfield_*.log
+ashfield_watchdog.log
+ashfield_run.log
+
+# Medallion lake captures (keep lake/ref and lake/etl in git)
+lake/bronze/
+lake/silver/
+lake/gold/
+
+# Ashfield PC dashboard (Vite)
+apps/ashfield-pc/node_modules/
+apps/ashfield-pc/dist/
+apps/ashfield-pc/public/data/personal_care.json
+
+# Store CI dashboard (Vite)
+apps/store-ci/node_modules/
+apps/store-ci/dist/
 
 # Claude Code session-local state.
 .claude/

@@ -1,0 +1,17 @@
+priority,coles_category_slug,woolworths_category,woolworths_subcategory,notes
+10,fruit-vegetables,Fruit & Veg,,fresh produce
+20,meat-seafood,Meat Seafood & Deli,Meat,
+30,deli,Meat Seafood & Deli,Deli,
+40,bakery,Bakery,,
+50,dairy-eggs-fridge,Dairy Eggs & Fridge,,
+60,frozen,Frozen,,
+70,chips-chocolates-snacks,Pantry,Snacks,
+80,pantry,Pantry,,
+90,dietary-world-foods,Pantry,International,
+100,drinks,Drinks,,
+110,health-beauty,Health & Beauty,,
+120,cleaning-laundry,Household,Cleaning,
+130,home-garden,Household,,
+140,baby,Baby,,
+150,pet,Pet,,
+160,liquorland,Liquor,,Coles Liquorland; WW liquor if present at store
