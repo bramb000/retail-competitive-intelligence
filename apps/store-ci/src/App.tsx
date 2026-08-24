@@ -9,6 +9,7 @@ import { LocationPicker } from "./components/LocationPicker";
 import { MethodsWiki } from "./components/MethodsWiki";
 import { NavPill } from "./components/NavPill";
 import { PriceCompetitionBoard } from "./components/PriceCompetitionBoard";
+import { StoreFloorMap } from "./components/StoreFloorMap";
 import { StoreScoreboard } from "./components/StoreScoreboard";
 import type { BoardTab, Grain, LocationMeta, StoreCiData } from "./lib/types";
 import "./styles/app.css";
@@ -202,6 +203,14 @@ export default function App() {
               {board === "kvi" ? (
                 <KnownValueBoard
                   data={data}
+                  locationName={locationName}
+                  onOpenMethods={openMethods}
+                />
+              ) : null}
+              {board === "floor" ? (
+                <StoreFloorMap
+                  data={viewData}
+                  grain={grain}
                   locationName={locationName}
                   onOpenMethods={openMethods}
                 />

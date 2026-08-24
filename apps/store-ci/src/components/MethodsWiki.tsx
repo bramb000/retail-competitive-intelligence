@@ -39,6 +39,9 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
             <a href="#bay-share">How much shelf space a category gets</a>
           </li>
           <li>
+            <a href="#floor-map">Floor maps (category adjacency)</a>
+          </li>
+          <li>
             <a href="#bay-key">How we count shelf bays at each retailer</a>
           </li>
           <li>
@@ -258,6 +261,32 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
         <p>
           This is a count of shelf sections, <strong>not</strong> floor area in square metres, and
           not a raw map overlay between Coles and Woolworths.
+        </p>
+      </section>
+
+      <section className="panel panel--cream" id="floor-map">
+        <h2>Floor maps — which aisles sit next to each other</h2>
+        <p className="support">
+          The <strong>Floor map</strong> tab plots every product that has an in-store map pin on an
+          X–Y plane, separately for Coles and for Woolworths.
+        </p>
+        <ul>
+          <li>
+            Colour follows the <strong>Category / Subcategory</strong> toggle at the top of the
+            scoreboard, so you can see major aisle families or finer shelf groups.
+          </li>
+          <li>
+            Labels mark the centre of gravity of each group (where most of its pins sit).
+          </li>
+          <li>
+            Hover a legend chip to highlight that group and dim everything else — handy for
+            spotting neighbours.
+          </li>
+        </ul>
+        <p>
+          Coles and Woolworths use <strong>different indoor map systems</strong>. Do not overlay the
+          two plots or compare absolute coordinates across banners. Adjacency is only meaningful
+          inside one store.
         </p>
       </section>
 

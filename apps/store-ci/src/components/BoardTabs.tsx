@@ -5,6 +5,7 @@ const TABS: Array<{ id: BoardTab; label: string }> = [
   { id: "dominance", label: "Dominance" },
   { id: "price", label: "Price race" },
   { id: "kvi", label: "Known value" },
+  { id: "floor", label: "Floor map" },
 ];
 
 interface Props {

@@ -1,6 +1,6 @@
 export type Retailer = "Coles" | "Woolworths";
 
-export type BoardTab = "departments" | "dominance" | "price" | "kvi";
+export type BoardTab = "departments" | "dominance" | "price" | "kvi" | "floor";
 
 export type Grain = "category" | "subcategory";
 
@@ -139,6 +139,7 @@ export interface SkuRow {
   brand: string | null;
   category: string | null;
   subcategory_id?: string | null;
+  gold_category?: string | null;
   shared_label: string | null;
   subcategory: string | null;
   price_now: number | null;

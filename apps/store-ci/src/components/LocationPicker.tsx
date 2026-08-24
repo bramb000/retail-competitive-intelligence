@@ -20,7 +20,7 @@ export function LocationPicker({ locations, activeId, onSelect }: Props) {
             type="button"
             className={active ? "location-chip active" : "location-chip"}
             disabled={!enabled}
-            title={enabled ? loc.name : `${loc.name} — coming soon`}
+            aria-label={enabled ? loc.name : `${loc.name} — coming soon`}
             onClick={() => enabled && onSelect(loc.id)}
           >
             {loc.name}
