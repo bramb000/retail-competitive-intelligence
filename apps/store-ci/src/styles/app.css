@@ -4,6 +4,8 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 5.5rem 1.75rem 4rem;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .loading,
@@ -214,6 +216,9 @@
   border-radius: var(--plv-radius-xl);
   padding: 1.5rem 1.6rem 1.35rem;
   margin-bottom: 1.25rem;
+  /* Keep wide child tables from blowing out the page; wrap handles scroll */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel--lilac {
@@ -393,18 +398,36 @@
   color: var(--ww);
 }
 
-/* Scoreboards grow with the page — no nested scroll box (iPad / subcategory lists). */
+/*
+  Scoreboards: page scrolls vertically (no height cap).
+  Wide tables scroll horizontally *inside* this wrap so they don't spill the panel.
+*/
 .scoreboard-table-wrap {
-  overflow: visible;
+  max-width: 100%;
   max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border: 1px solid rgba(9, 9, 9, 0.08);
   border-radius: var(--plv-radius-lg);
+  background: #fff;
+}
+
+.scoreboard-table-wrap > .scoreboard-table {
+  width: max-content;
+  min-width: 100%;
 }
 
 /* Drill-in SKU tables can still clip if very long */
 .sku-table-wrap {
+  max-width: 100%;
   overflow: auto;
   border-radius: var(--plv-radius-lg);
   max-height: min(70vh, 720px);
+  border: 1px solid rgba(9, 9, 9, 0.08);
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scoreboard-table,
