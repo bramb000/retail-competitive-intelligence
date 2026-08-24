@@ -1,6 +1,6 @@
 """Deprecated Streamlit Personal Care view.
 
-Use the Planoverse-styled interactive dashboard instead:
+Use the interactive dashboard instead:
 
     ./run_pc_dashboard
 

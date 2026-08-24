@@ -2,7 +2,7 @@
 
 Full-store Coles ↔ Woolworths competitive intelligence — category × location scoreboards, pricing, shelf space, and assortment overlap.
 
-**Live dashboard:** [bramha-loftia.github.io/retail-competitive-intelligence](https://bramha-loftia.github.io/retail-competitive-intelligence/)
+**Live dashboard:** [bramb000.github.io/retail-competitive-intelligence](https://bramb000.github.io/retail-competitive-intelligence/)
 
 ## Local development
 

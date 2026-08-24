@@ -9,7 +9,7 @@ interface NavPillProps {
 export function NavPill({ category, suburb, stores, view, onView }: NavPillProps) {
   return (
     <div className="nav-pill" role="banner">
-      <strong>Planoverse</strong>
+      <strong>Retail CI</strong>
       <span>
         {category} · {suburb} · Coles {stores.Coles} / WW {stores.Woolworths}
       </span>
