@@ -1,14 +1,14 @@
 coles_category_slug,woolworths_category,woolworths_subcategory,match_support,vote_share,source,notes
-bakery,Bakery,Sandwich Ingredients,19,1.0000,recommended,votes=19;candidates={'Bakery': 19}
-chips-chocolates-snacks,Snacks & Confectionery,Biscuits & Crackers,73,0.5984,recommended,"votes=122;candidates={'Snacks & Confectionery': 73, 'Lunch Box': 20, 'Pantry': 24, 'Health & Wellness': 4, 'Dairy, Eggs & Fridge': 1}"
-cleaning-laundry,Cleaning & Maintenance,Cleaning Goods,102,1.0000,recommended,votes=102;candidates={'Cleaning & Maintenance': 102}
-dairy-eggs-fridge,"Dairy, Eggs & Fridge",Cheese,151,0.9096,recommended,"votes=166;candidates={'Dairy, Eggs & Fridge': 151, 'Pantry': 5, 'Poultry, Meat & Seafood': 7, 'Deli': 1, 'Drinks': 1, 'Cleaning & Maintenance': 1}"
-deli,Deli,Deli Meats,11,0.5000,recommended,"votes=22;candidates={'Deli': 11, 'Poultry, Meat & Seafood': 6, 'Pantry': 1, 'Snacks & Confectionery': 3, 'Dairy, Eggs & Fridge': 1}"
-dietary-world-foods,Health & Wellness,Health Foods,23,0.4107,recommended,"votes=56;candidates={'Lunch Box': 2, 'Pantry': 7, 'International Foods': 1, 'Freezer': 13, 'Health & Wellness': 23, 'Drinks': 5, 'Snacks & Confectionery': 5}"
-drinks,Drinks,Tea & Coffee,120,0.9600,recommended,"votes=125;candidates={'Drinks': 120, 'Pantry': 5}"
-frozen,Freezer,Frozen Meals,35,1.0000,recommended,votes=35;candidates={'Freezer': 35}
-health-beauty,Personal Care,Hair Care,279,0.8480,recommended,"votes=329;candidates={'Personal Care': 279, 'Health & Wellness': 50}"
-home-garden,Home & Lifestyle,Clothing & Accessories,19,0.7917,recommended,"votes=24;candidates={'Home & Lifestyle': 19, 'Cleaning & Maintenance': 5}"
-meat-seafood,"Poultry, Meat & Seafood",Seafood,5,0.6250,recommended,"votes=8;candidates={'Poultry, Meat & Seafood': 5, 'Freezer': 2, 'Deli': 1}"
-pantry,Pantry,Baking,378,0.8770,recommended,"votes=431;candidates={'Pantry': 378, 'Health & Wellness': 36, 'Drinks': 8, 'Snacks & Confectionery': 2, 'Lunch Box': 4, 'Dairy, Eggs & Fridge': 1, 'Freezer': 2}"
-pet,Pet,Cat & Kitten,52,1.0000,recommended,votes=52;candidates={'Pet': 52}
+bakery,Bakery,Sandwich Ingredients,24,1.0000,recommended,votes=24;candidates={'Bakery': 24}
+chips-chocolates-snacks,Snacks & Confectionery,Biscuits & Crackers,140,0.6635,recommended,"votes=211;candidates={'Snacks & Confectionery': 140, 'Lunch Box': 31, 'Pantry': 34, 'Health & Wellness': 5, 'Dairy, Eggs & Fridge': 1}"
+cleaning-laundry,Cleaning & Maintenance,Cleaning Goods,123,1.0000,recommended,votes=123;candidates={'Cleaning & Maintenance': 123}
+dairy-eggs-fridge,"Dairy, Eggs & Fridge",Cheese,200,0.9174,recommended,"votes=218;candidates={'Dairy, Eggs & Fridge': 200, 'Pantry': 6, 'Freezer': 1, 'Poultry, Meat & Seafood': 8, 'Deli': 1, 'Drinks': 1, 'Cleaning & Maintenance': 1}"
+deli,Deli,Deli Meats,14,0.5185,recommended,"votes=27;candidates={'Deli': 14, 'Poultry, Meat & Seafood': 7, 'Pantry': 1, 'Dairy, Eggs & Fridge': 2, 'Snacks & Confectionery': 3}"
+dietary-world-foods,Health & Wellness,Health Foods,36,0.3956,recommended,"votes=91;candidates={'Lunch Box': 3, 'Freezer': 30, 'Pantry': 10, 'Health & Wellness': 36, 'International Foods': 1, 'Drinks': 6, 'Snacks & Confectionery': 5}"
+drinks,Drinks,"Cordials, Juices & Iced Teas",180,0.9524,recommended,"votes=189;candidates={'Drinks': 180, 'Pantry': 6, 'Freezer': 2, 'Dairy, Eggs & Fridge': 1}"
+frozen,Freezer,Ice Cream,95,0.9896,recommended,"votes=96;candidates={'Freezer': 95, 'Pantry': 1}"
+health-beauty,Personal Care,Hair Care,340,0.8374,recommended,"votes=406;candidates={'Personal Care': 340, 'Health & Wellness': 66}"
+home-garden,Home & Lifestyle,Clothing & Accessories,19,0.7600,recommended,"votes=25;candidates={'Home & Lifestyle': 19, 'Cleaning & Maintenance': 6}"
+meat-seafood,"Poultry, Meat & Seafood",Seafood,7,0.6364,recommended,"votes=11;candidates={'Poultry, Meat & Seafood': 7, 'Deli': 2, 'Freezer': 2}"
+pantry,Pantry,Baking,557,0.8827,recommended,"votes=631;candidates={'Pantry': 557, 'Snacks & Confectionery': 3, 'Health & Wellness': 54, 'Drinks': 9, 'Lunch Box': 5, 'Dairy, Eggs & Fridge': 1, 'Freezer': 2}"
+pet,Pet,Cat & Kitten,68,1.0000,recommended,votes=68;candidates={'Pet': 68}
