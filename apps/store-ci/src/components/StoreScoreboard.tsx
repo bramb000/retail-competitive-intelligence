@@ -150,22 +150,6 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
                 <thead>
                   <tr>
                     <th>{title}</th>
-                    <th>Status</th>
-                    <th>
-                      <span className="th-with-mark">
-                        <BannerMark banner="Coles" size="sm" />
-                        Says
-                      </span>
-                    </th>
-                    <th>
-                      <span className="th-with-mark">
-                        <BannerMark banner="Woolworths" size="sm" />
-                        Says
-                      </span>
-                    </th>
-                    <th className="num coles-text">Products</th>
-                    <th className="num ww-text">Products</th>
-                    <th className="num">Product ratio</th>
                     <th className="num">
                       <span className="th-with-mark">
                         Share of store bays
@@ -183,6 +167,21 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
                         <DualBannerMarks />
                       </span>
                     </th>
+                    <th>
+                      <span className="th-with-mark">
+                        <BannerMark banner="Coles" size="sm" />
+                        Says
+                      </span>
+                    </th>
+                    <th>
+                      <span className="th-with-mark">
+                        <BannerMark banner="Woolworths" size="sm" />
+                        Says
+                      </span>
+                    </th>
+                    <th className="num coles-text">Products</th>
+                    <th className="num ww-text">Products</th>
+                    <th className="num">Product ratio</th>
                     <th />
                   </tr>
                 </thead>
@@ -229,18 +228,6 @@ function DeptRow({
         ) : null}
         <div className="muted tiny">{dept.blurb}</div>
       </td>
-      <td>
-        {awaiting ? (
-          <span className="badge badge-muted">Awaiting scrape</span>
-        ) : (
-          <span className="badge badge-cool">Ready</span>
-        )}
-      </td>
-      <td className="coles-text">{dept.coles_label}</td>
-      <td className="ww-text">{dept.ww_label}</td>
-      <td className="num">{intFmt(dept.coles_skus)}</td>
-      <td className="num">{intFmt(dept.ww_skus)}</td>
-      <td className="num">{skuRatio(dept.coles_skus, dept.ww_skus)}</td>
       <td className="num">
         <div>
           <span className="coles-text">{pctFmt(dept.coles_pct_store_bays)}</span>
@@ -258,6 +245,11 @@ function DeptRow({
         {" / "}
         <span className="ww-text">{pctFmt(dept.ww_pct_promo)}</span>
       </td>
+      <td className="coles-text">{dept.coles_label}</td>
+      <td className="ww-text">{dept.ww_label}</td>
+      <td className="num">{intFmt(dept.coles_skus)}</td>
+      <td className="num">{intFmt(dept.ww_skus)}</td>
+      <td className="num">{skuRatio(dept.coles_skus, dept.ww_skus)}</td>
       <td className="num">
         <button type="button" className="chip chip-clear" onClick={() => onSelect(dept.id)}>
           Open →
