@@ -23,12 +23,12 @@ export function DominanceBoard({ data, grain, locationName, onSelect, onOpenMeth
     <>
       <header className="hero">
         <p className="eyebrow">
-          {grainTitle(grain)} × {locationName}
+          {grainTitle(grain)} · {locationName}
         </p>
-        <h1>Where each store is dominant</h1>
+        <h1>Who owns the aisle</h1>
         <p>
-          Bay share first, then assortment share of that banner’s store at {locationName}. One-sided
-          rows mean the other banner has little or no presence yet (often while scrapers fill).
+          Shelf space first, then assortment share at {locationName}. Thin coverage on one side
+          often shows as one-sided until both banners are complete.
         </p>
         <p className="hero-methods-link">
           <button type="button" className="text-link" onClick={() => onOpenMethods("dominance")}>

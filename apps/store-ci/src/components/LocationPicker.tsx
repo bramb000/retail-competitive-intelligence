@@ -29,7 +29,7 @@ export function LocationPicker({ locations, activeId, onSelect }: Props) {
         );
       })}
       {locations.length <= 1 ? (
-        <span className="location-hint muted">More suburbs when scrape expands</span>
+        <span className="location-hint muted">More locations coming</span>
       ) : null}
     </div>
   );

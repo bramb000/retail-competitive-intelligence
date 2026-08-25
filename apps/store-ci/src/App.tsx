@@ -1,20 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppShell } from "./components/AppShell";
 import { BannerLegend } from "./components/BannerMark";
-import { BoardTabs } from "./components/BoardTabs";
 import { CategoryDrill } from "./components/CategoryDrill";
 import { DominanceBoard } from "./components/DominanceBoard";
 import { GrainToggle } from "./components/GrainToggle";
 import { KnownValueBoard } from "./components/KnownValueBoard";
 import { LocationPicker } from "./components/LocationPicker";
 import { MethodsWiki } from "./components/MethodsWiki";
-import { NavPill } from "./components/NavPill";
 import { PriceCompetitionBoard } from "./components/PriceCompetitionBoard";
 import { StoreFloorMap } from "./components/StoreFloorMap";
 import { StoreScoreboard } from "./components/StoreScoreboard";
+import {
+  parseHash,
+  replaceHash,
+  type AppView,
+} from "./lib/hashRoute";
 import type { BoardTab, Grain, LocationMeta, StoreCiData } from "./lib/types";
 import "./styles/app.css";
 
-type View = "scoreboard" | "methods";
+const BOARD_CRUMB: Record<BoardTab, string> = {
+  departments: "Overview",
+  dominance: "Dominance",
+  price: "Price",
+  kvi: "Staples",
+  floor: "Floor",
+};
 
 function applyGrain(data: StoreCiData, grain: Grain): StoreCiData {
   const slice = data.grains?.[grain];
@@ -42,12 +52,14 @@ function applyGrain(data: StoreCiData, grain: Grain): StoreCiData {
 export default function App() {
   const [data, setData] = useState<StoreCiData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<View>("scoreboard");
+  const [view, setView] = useState<AppView>("scoreboard");
   const [board, setBoard] = useState<BoardTab>("departments");
   const [methodsSection, setMethodsSection] = useState<string | undefined>();
   const [deptId, setDeptId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string>("ashfield");
   const [grain, setGrain] = useState<Grain>("category");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [hashReady, setHashReady] = useState(false);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}data/store_ci.json`)
@@ -62,6 +74,27 @@ export default function App() {
       })
       .catch((err: Error) => setError(err.message));
   }, []);
+
+  // Apply hash on first load (and when user uses back/forward).
+  useEffect(() => {
+    function applyFromHash() {
+      const state = parseHash(window.location.hash);
+      setView(state.view);
+      setBoard(state.board);
+      setDeptId(state.deptId);
+      setMethodsSection(state.methodsSection);
+      setHashReady(true);
+    }
+    applyFromHash();
+    window.addEventListener("hashchange", applyFromHash);
+    return () => window.removeEventListener("hashchange", applyFromHash);
+  }, []);
+
+  // Keep hash in sync with navigation state.
+  useEffect(() => {
+    if (!hashReady) return;
+    replaceHash({ view, board, deptId, methodsSection });
+  }, [view, board, deptId, methodsSection, hashReady]);
 
   useEffect(() => {
     if (view !== "methods" || !methodsSection) return;
@@ -96,129 +129,150 @@ export default function App() {
     [viewData, deptId],
   );
 
-  function openMethods(sectionId?: string) {
+  const navigateBoard = useCallback((next: BoardTab) => {
+    setView("scoreboard");
+    setBoard(next);
+    setDeptId(null);
+    setMethodsSection(undefined);
+  }, []);
+
+  const openMethods = useCallback((sectionId?: string) => {
     setMethodsSection(sectionId);
     setView("methods");
-  }
+    setDeptId(null);
+  }, []);
+
+  const selectDept = useCallback((id: string) => {
+    setDeptId(id);
+    setView("scoreboard");
+  }, []);
 
   if (error) {
     return (
       <div className="error">
         <p>{error}</p>
-        <p>
-          Run: <code>.venv/bin/python scripts/export_store_ci_data.py</code>
-        </p>
+        <p>Ask your team to refresh the store data export, then reload this page.</p>
       </div>
     );
   }
 
   if (!data || !viewData) {
-    return <div className="loading">Loading store intelligence…</div>;
+    return <div className="loading">Loading Retail CI…</div>;
   }
 
-  return (
-    <>
-      <NavPill
-        locationName={locationName}
-        stores={data.meta.stores}
-        view={view === "methods" ? "methods" : "scoreboard"}
-        categoryLabel={dept?.shared_label}
-        onView={(v) => {
-          setView(v);
-          if (v === "scoreboard") setMethodsSection(undefined);
-        }}
-      />
-      {view === "methods" ? (
-        <MethodsWiki
-          onBack={() => {
-            setView("scoreboard");
-            setMethodsSection(undefined);
+  const stores = data.meta.stores;
+  const crumb =
+    view === "methods" ? (
+      "Methods"
+    ) : dept ? (
+      <>
+        <button type="button" onClick={() => setDeptId(null)}>
+          {BOARD_CRUMB[board]}
+        </button>
+        {" / "}
+        {dept.shared_label}
+      </>
+    ) : (
+      BOARD_CRUMB[board]
+    );
+
+  const toolbar =
+    view === "scoreboard" && !dept ? (
+      <div className="view-toolbar">
+        <LocationPicker
+          locations={locations}
+          activeId={locationId}
+          onSelect={(id) => {
+            setLocationId(id);
+            setDeptId(null);
           }}
         />
+        <GrainToggle
+          grain={grain}
+          onGrain={(next) => {
+            setGrain(next);
+            setDeptId(null);
+          }}
+        />
+      </div>
+    ) : null;
+
+  return (
+    <AppShell
+      view={view}
+      board={board}
+      onBoard={navigateBoard}
+      onMethods={() => openMethods()}
+      mobileOpen={mobileNavOpen}
+      onMobileOpen={setMobileNavOpen}
+      crumb={crumb}
+      meta={
+        <>
+          {locationName}
+          {" · "}
+          Coles {stores.Coles} / WW {stores.Woolworths}
+        </>
+      }
+      toolbar={toolbar}
+    >
+      {view === "methods" ? (
+        <MethodsWiki onBack={() => navigateBoard(board)} />
+      ) : dept ? (
+        <CategoryDrill
+          data={viewData}
+          dept={dept}
+          grain={grain}
+          locationName={locationName}
+          onBack={() => setDeptId(null)}
+          onOpenMethods={openMethods}
+        />
       ) : (
-        <main className="app">
-          {dept ? (
-            <CategoryDrill
+        <>
+          <BannerLegend />
+          {board === "departments" ? (
+            <StoreScoreboard
               data={viewData}
-              dept={dept}
               grain={grain}
               locationName={locationName}
-              onBack={() => setDeptId(null)}
+              onSelect={selectDept}
               onOpenMethods={openMethods}
             />
-          ) : (
-            <>
-              <div className="view-toolbar">
-                <LocationPicker
-                  locations={locations}
-                  activeId={locationId}
-                  onSelect={(id) => {
-                    setLocationId(id);
-                    setDeptId(null);
-                  }}
-                />
-                <GrainToggle
-                  grain={grain}
-                  onGrain={(next) => {
-                    setGrain(next);
-                    setDeptId(null);
-                  }}
-                />
-              </div>
-              <BannerLegend />
-              <BoardTabs
-                tab={board}
-                onTab={(t) => {
-                  setBoard(t);
-                  setDeptId(null);
-                }}
-              />
-              {board === "departments" ? (
-                <StoreScoreboard
-                  data={viewData}
-                  grain={grain}
-                  locationName={locationName}
-                  onSelect={setDeptId}
-                  onOpenMethods={openMethods}
-                />
-              ) : null}
-              {board === "dominance" ? (
-                <DominanceBoard
-                  data={viewData}
-                  grain={grain}
-                  locationName={locationName}
-                  onSelect={setDeptId}
-                  onOpenMethods={openMethods}
-                />
-              ) : null}
-              {board === "price" ? (
-                <PriceCompetitionBoard
-                  data={viewData}
-                  grain={grain}
-                  locationName={locationName}
-                  onSelect={setDeptId}
-                  onOpenMethods={openMethods}
-                />
-              ) : null}
-              {board === "kvi" ? (
-                <KnownValueBoard
-                  data={data}
-                  locationName={locationName}
-                  onOpenMethods={openMethods}
-                />
-              ) : null}
-              {board === "floor" ? (
-                <StoreFloorMap
-                  data={viewData}
-                  grain={grain}
-                  locationName={locationName}
-                  onOpenMethods={openMethods}
-                />
-              ) : null}
-            </>
-          )}
-        </main>
+          ) : null}
+          {board === "dominance" ? (
+            <DominanceBoard
+              data={viewData}
+              grain={grain}
+              locationName={locationName}
+              onSelect={selectDept}
+              onOpenMethods={openMethods}
+            />
+          ) : null}
+          {board === "price" ? (
+            <PriceCompetitionBoard
+              data={viewData}
+              grain={grain}
+              locationName={locationName}
+              onSelect={selectDept}
+              onOpenMethods={openMethods}
+            />
+          ) : null}
+          {board === "kvi" ? (
+            <KnownValueBoard
+              data={data}
+              locationName={locationName}
+              onOpenMethods={openMethods}
+            />
+          ) : null}
+          {board === "floor" ? (
+            <StoreFloorMap
+              data={viewData}
+              grain={grain}
+              locationName={locationName}
+              onOpenMethods={openMethods}
+            />
+          ) : null}
+        </>
       )}
-    </>
+    </AppShell>
   );
 }

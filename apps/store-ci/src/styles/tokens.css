@@ -19,11 +19,15 @@
   --ww: #17823c;
   --coles-soft: rgba(232, 119, 34, 0.15);
   --ww-soft: rgba(23, 130, 60, 0.15);
-  --plv-purple-soft: rgba(123, 79, 232, 0.14);
+  --plv-purple-soft: rgba(123, 79, 232, 0.1);
   --plv-line: rgba(9, 9, 9, 0.1);
   --plv-line-soft: rgba(9, 9, 9, 0.06);
   --surface: #ffffff;
-  --page-bg: #ede9fa;
+  /* Soft cream page — not lilac wash */
+  --page-bg: #f7f5f2;
+  --sidebar-width: 15.5rem;
+  --sidebar-bg: #ffffff;
+  --context-bar-h: 3.25rem;
 }
 
 *,

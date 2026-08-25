@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
 import { BannerMark } from "./BannerMark";
 import { intFmt, type DominanceRow } from "../lib/types";
 
@@ -31,38 +31,43 @@ export function DominanceVenn({ rows, onSelect }: Props) {
   const active =
     focus === "coles" ? buckets.coles : focus === "ww" ? buckets.ww : focus === "contested" ? buckets.contested : null;
 
+  const toggleFocus = (region: Region) => setFocus((f) => (f === region ? null : region));
+
+  const onRegionKey = (region: Region) => (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleFocus(region);
+    }
+  };
+
   return (
-    <section className="panel panel--lilac dominance-venn-panel">
+    <section className="panel dominance-venn-panel">
       <h2>Dominance at a glance</h2>
       <p className="support">
-        Left = Coles stronger · middle = too close to call · right = Woolworths stronger. Click a
-        circle or a category chip to open the aisle.
+        Left = Coles stronger · middle = too close to call · right = Woolworths stronger. Select a
+        region to filter the lists; open a category chip to drill into that aisle.
       </p>
 
       <div className="dominance-venn">
         <svg
           className="dominance-venn-svg"
           viewBox="0 0 440 240"
-          role="img"
-          aria-label="Dominance Venn diagram"
+          role="group"
+          aria-label="Category dominance regions"
         >
-          <title>Category dominance Venn</title>
           <circle
             className="venn-circle venn-circle--coles"
             cx="155"
             cy="120"
             r="100"
             data-dimmed={focus != null && focus !== "coles" ? "true" : "false"}
+            data-active={focus === "coles" ? "true" : "false"}
             tabIndex={0}
             role="button"
-            aria-label={`Coles stronger: ${buckets.coles.length} aisles`}
-            onClick={() => setFocus((f) => (f === "coles" ? null : "coles"))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setFocus((f) => (f === "coles" ? null : "coles"));
-              }
-            }}
+            aria-pressed={focus === "coles"}
+            aria-label={`Coles stronger: ${buckets.coles.length} aisles. Toggle to filter.`}
+            onClick={() => toggleFocus("coles")}
+            onKeyDown={onRegionKey("coles")}
           />
           <circle
             className="venn-circle venn-circle--ww"
@@ -70,18 +75,15 @@ export function DominanceVenn({ rows, onSelect }: Props) {
             cy="120"
             r="100"
             data-dimmed={focus != null && focus !== "ww" ? "true" : "false"}
+            data-active={focus === "ww" ? "true" : "false"}
             tabIndex={0}
             role="button"
-            aria-label={`Woolworths stronger: ${buckets.ww.length} aisles`}
-            onClick={() => setFocus((f) => (f === "ww" ? null : "ww"))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setFocus((f) => (f === "ww" ? null : "ww"));
-              }
-            }}
+            aria-pressed={focus === "ww"}
+            aria-label={`Woolworths stronger: ${buckets.ww.length} aisles. Toggle to filter.`}
+            onClick={() => toggleFocus("ww")}
+            onKeyDown={onRegionKey("ww")}
           />
-          {/* Contested hit target in the overlap */}
+          {/* Contested hit target in the overlap — neutral, not brand primary */}
           <ellipse
             className="venn-overlap-hit"
             cx="220"
@@ -89,42 +91,39 @@ export function DominanceVenn({ rows, onSelect }: Props) {
             rx="48"
             ry="78"
             data-dimmed={focus != null && focus !== "contested" ? "true" : "false"}
+            data-active={focus === "contested" ? "true" : "false"}
             tabIndex={0}
             role="button"
-            aria-label={`Contested: ${buckets.contested.length} aisles`}
-            onClick={() => setFocus((f) => (f === "contested" ? null : "contested"))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setFocus((f) => (f === "contested" ? null : "contested"));
-              }
-            }}
+            aria-pressed={focus === "contested"}
+            aria-label={`Too close to call: ${buckets.contested.length} aisles. Toggle to filter.`}
+            onClick={() => toggleFocus("contested")}
+            onKeyDown={onRegionKey("contested")}
           />
 
-          <text className="venn-count venn-count--coles" x="115" y="108" textAnchor="middle">
+          <text className="venn-count" x="115" y="108" textAnchor="middle" aria-hidden="true">
             {intFmt(buckets.coles.length)}
           </text>
-          <text className="venn-label" x="115" y="132" textAnchor="middle">
+          <text className="venn-label" x="115" y="132" textAnchor="middle" aria-hidden="true">
             Coles
           </text>
-          <text className="venn-sub" x="115" y="150" textAnchor="middle">
+          <text className="venn-sub" x="115" y="150" textAnchor="middle" aria-hidden="true">
             stronger
           </text>
 
-          <text className="venn-count venn-count--mid" x="220" y="108" textAnchor="middle">
+          <text className="venn-count" x="220" y="108" textAnchor="middle" aria-hidden="true">
             {intFmt(buckets.contested.length)}
           </text>
-          <text className="venn-label" x="220" y="132" textAnchor="middle">
+          <text className="venn-label" x="220" y="132" textAnchor="middle" aria-hidden="true">
             Contested
           </text>
 
-          <text className="venn-count venn-count--ww" x="325" y="108" textAnchor="middle">
+          <text className="venn-count" x="325" y="108" textAnchor="middle" aria-hidden="true">
             {intFmt(buckets.ww.length)}
           </text>
-          <text className="venn-label" x="325" y="132" textAnchor="middle">
+          <text className="venn-label" x="325" y="132" textAnchor="middle" aria-hidden="true">
             Woolworths
           </text>
-          <text className="venn-sub" x="325" y="150" textAnchor="middle">
+          <text className="venn-sub" x="325" y="150" textAnchor="middle" aria-hidden="true">
             stronger
           </text>
         </svg>
@@ -154,9 +153,12 @@ export function DominanceVenn({ rows, onSelect }: Props) {
       </div>
 
       {active && focus ? (
-        <p className="venn-focus-hint muted tiny">
-          Showing {active.length} {focus === "contested" ? "contested" : `${focus === "coles" ? "Coles" : "Woolworths"}-led`}{" "}
-          aisle{active.length === 1 ? "" : "s"}. Click the circle again to clear.
+        <p className="venn-focus-hint muted tiny" aria-live="polite">
+          Showing {active.length}{" "}
+          {focus === "contested"
+            ? "contested"
+            : `${focus === "coles" ? "Coles" : "Woolworths"}-led`}{" "}
+          aisle{active.length === 1 ? "" : "s"}. Select the region again to clear.
         </p>
       ) : null}
     </section>
@@ -177,7 +179,10 @@ function VennColumn({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className={`venn-col${active ? "" : " venn-col--dim"}`}>
+    <div
+      className={`venn-col${active ? "" : " venn-col--dim"}`}
+      aria-hidden={active ? undefined : true}
+    >
       <div className="venn-col-title">
         {mark ? <BannerMark banner={mark} size="sm" /> : null}
         {title}
@@ -187,7 +192,13 @@ function VennColumn({
         {rows.length === 0 ? <li className="muted tiny">None yet</li> : null}
         {rows.map((r) => (
           <li key={r.id}>
-            <button type="button" className="venn-chip" onClick={() => onSelect(r.id)}>
+            <button
+              type="button"
+              className="venn-chip"
+              tabIndex={active ? 0 : -1}
+              disabled={!active}
+              onClick={() => onSelect(r.id)}
+            >
               {r.shared_label}
             </button>
           </li>

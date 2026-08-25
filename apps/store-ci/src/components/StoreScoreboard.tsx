@@ -1,6 +1,7 @@
 import { InfoTip } from "./InfoTip";
 import { BannerMark, DualBannerMarks } from "./BannerMark";
 import { BayShareButterfly } from "./BayShareButterfly";
+import { DataNotes } from "./DataNotes";
 import {
   grainNoun,
   grainTitle,
@@ -37,18 +38,18 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
   return (
     <>
       <header className="hero">
-        <p className="eyebrow">{title} × location · full store</p>
-        <h1>
-          {locationName} {nounMany}
-        </h1>
+        <p className="eyebrow">
+          {title} · {locationName}
+        </p>
+        <h1>Aisle space and range</h1>
         <p>
           {grain === "category"
-            ? "Major aisle families at this suburb. Coles and Woolworths use different names for the same part of the store; we line them up so the shelves can be compared."
-            : "Woolworths-style subcategories at this suburb. Woolworths is native; Coles products are mapped onto the same labels so the shelves can be compared like-for-like. Coverage on the Coles side is incomplete — unmatched products stay on the category view."}
+            ? "Compare how much shelf each banner gives major aisle families — lined up even when Coles and Woolworths use different names."
+            : "Finer shelf groups using shared labels. Woolworths is native; Coles is mapped where we can."}
         </p>
         <p className="hero-methods-link">
           <button type="button" className="text-link" onClick={() => onOpenMethods("grain")}>
-            Methods — how this view is put together
+            How this view is built
           </button>
           {" · "}
           <button type="button" className="text-link" onClick={() => onOpenMethods("overlap")}>
@@ -57,12 +58,7 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
         </p>
       </header>
 
-      <aside className="caveats" aria-label="Data caveats">
-        <strong>Read this first</strong>
-        {data.meta.caveats.map((c) => (
-          <p key={c}>{c}</p>
-        ))}
-      </aside>
+      <DataNotes notes={data.meta.caveats} />
 
       <section className="kpi-grid store-kpi" aria-label="Location totals">
         <div className="kpi-card">
@@ -104,7 +100,7 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
           </div>
           <div className="kpi-value">{intFmt(rowCount)}</div>
           <div className="kpi-insight">
-            Ready {intFmt(ready)} · still collecting {intFmt(awaiting)}
+            Ready {intFmt(ready)} · still filling in {intFmt(awaiting)}
           </div>
         </div>
         <div className="kpi-card">
@@ -123,10 +119,10 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
 
       {waiting ? (
         <section className="panel panel--cream waiting-panel">
-          <h2>Waiting for data</h2>
+          <h2>Data still filling in</h2>
           <p className="support">
-            Scrapers or ETL may still be filling bronze. This UI is ready — re-run{" "}
-            <code>./run_store_ci</code> after <code>scrape_ashfield_deep.py --phase etl</code>.
+            Product and shelf coverage for {locationName} is not ready yet. Check back after the next
+            data refresh.
           </p>
         </section>
       ) : (
@@ -142,9 +138,7 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
             <h2>
               {nounMany.charAt(0).toUpperCase() + nounMany.slice(1)} at {locationName}
             </h2>
-            <p className="support">
-              Grain: {nounOne} × location. Click any row for the drill-in at this suburb.
-            </p>
+            <p className="support">Open a row to drill into that {nounOne}.</p>
             <div className="scoreboard-table-wrap">
               <table className="scoreboard-table">
                 <thead>
@@ -227,6 +221,7 @@ function DeptRow({
           <div className="muted tiny">{dept.parent_category}</div>
         ) : null}
         <div className="muted tiny">{dept.blurb}</div>
+        {awaiting ? <div className="muted tiny">Data still filling in</div> : null}
       </td>
       <td className="num">
         <div>

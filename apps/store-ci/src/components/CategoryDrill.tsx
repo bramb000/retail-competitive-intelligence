@@ -78,8 +78,8 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
   return (
     <>
       <header className="hero">
-        <button type="button" className="chip chip-clear" onClick={onBack}>
-          ← {nounMany.charAt(0).toUpperCase() + nounMany.slice(1)} at {locationName}
+        <button type="button" className="chip" onClick={onBack}>
+          ← Back to {nounMany}
         </button>
         <h1 style={{ marginTop: "1rem" }}>
           {dept.shared_label}
@@ -98,7 +98,7 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
             <BannerMark banner="Woolworths" size="sm" />
             {dept.ww_label}
           </span>
-          {awaiting ? <span className="badge badge-muted"> Awaiting scrape</span> : null}
+          {awaiting ? <span className="badge badge-muted">Data still filling in</span> : null}
         </p>
       </header>
 
@@ -106,10 +106,10 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
 
       {awaiting ? (
         <section className="panel panel--cream waiting-panel">
-          <h2>No SKUs in this cell yet</h2>
+          <h2>Data still filling in</h2>
           <p className="support">
-            {title} × location cell is reserved in the taxonomy. Re-export after ETL as scrapers
-            fill bronze for {locationName}.
+            This {nounOne} is reserved in the taxonomy for {locationName}, but products are not
+            available yet. Check back after the next data refresh.
           </p>
         </section>
       ) : null}

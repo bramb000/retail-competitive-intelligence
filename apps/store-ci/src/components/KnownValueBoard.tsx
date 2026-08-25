@@ -33,11 +33,10 @@ export function KnownValueBoard({ data, locationName, onOpenMethods }: Props) {
     <>
       <header className="hero">
         <p className="eyebrow">Price perception · {locationName}</p>
-        <h1>Known value products</h1>
+        <h1>Everyday price perception</h1>
         <p>
-          Everyday staples shoppers use to judge whether a store feels expensive. We only call a
-          winner when pack sizes are similar, or when both sides publish a matching unit price
-          (for example $/L). Different bottle sizes are shown as <em>not comparable</em>.
+          Staples shoppers use to judge whether a store feels expensive. We only call a winner when
+          pack sizes are similar, or both sides publish a matching unit price.
         </p>
         <p className="hero-methods-link">
           <button type="button" className="text-link" onClick={() => onOpenMethods("known-value")}>
@@ -99,7 +98,7 @@ export function KnownValueBoard({ data, locationName, onOpenMethods }: Props) {
           <table className="scoreboard-table kvi-table">
             <thead>
               <tr>
-                <th>Known value item</th>
+                <th>Staple</th>
                 <th>Winner</th>
                 <th>
                   <span className="th-with-mark">

@@ -1,11 +1,11 @@
-/** Plain-language guide to how the scoreboards are built. */
+/** Plain-language guide to how the boards are built. */
 
 export function MethodsWiki({ onBack }: { onBack: () => void }) {
   return (
-    <main className="app methods-wiki">
+    <div className="methods-wiki">
       <header className="hero">
-        <button type="button" className="chip chip-clear" onClick={onBack}>
-          ← Back to scoreboard
+        <button type="button" className="chip" onClick={onBack}>
+          ← Back to boards
         </button>
         <h1 style={{ marginTop: "1rem" }}>How we calculate this</h1>
         <p>
@@ -18,40 +18,40 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
         <strong>On this page</strong>
         <ol>
           <li>
-            <a href="#grain">What you are looking at</a>
+            <a href="#/methods/grain">What you are looking at</a>
           </li>
           <li>
-            <a href="#subcategory-mapping">How Coles subcategories are assigned</a>
+            <a href="#/methods/subcategory-mapping">How Coles subcategories are assigned</a>
           </li>
           <li>
-            <a href="#glossary">Why names differ between Coles and Woolworths</a>
+            <a href="#/methods/glossary">Why names differ between Coles and Woolworths</a>
           </li>
           <li>
-            <a href="#dominance">Who is “winning” a category</a>
+            <a href="#/methods/dominance">Who is “winning” a category</a>
           </li>
           <li>
-            <a href="#price-race">How we compare prices by category</a>
+            <a href="#/methods/price-race">How we compare prices by category</a>
           </li>
           <li>
-            <a href="#known-value">Everyday staples shoppers use to judge price</a>
+            <a href="#/methods/known-value">Everyday staples shoppers use to judge price</a>
           </li>
           <li>
-            <a href="#bay-share">How much shelf space a category gets</a>
+            <a href="#/methods/bay-share">How much shelf space a category gets</a>
           </li>
           <li>
-            <a href="#floor-map">Floor maps (category adjacency)</a>
+            <a href="#/methods/floor-map">Floor maps (category adjacency)</a>
           </li>
           <li>
-            <a href="#bay-key">How we count shelf bays at each retailer</a>
+            <a href="#/methods/bay-key">How we count shelf bays at each retailer</a>
           </li>
           <li>
-            <a href="#overlap">When we say the same product is in both stores</a>
+            <a href="#/methods/overlap">When we say the same product is in both stores</a>
           </li>
           <li>
-            <a href="#promo">Specials and typical prices</a>
+            <a href="#/methods/promo">Specials and typical prices</a>
           </li>
           <li>
-            <a href="#refresh">Keeping the numbers up to date</a>
+            <a href="#/methods/refresh">Keeping the numbers up to date</a>
           </li>
         </ol>
       </nav>
@@ -59,8 +59,8 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
       <section className="panel panel--lilac" id="grain">
         <h2>What you are looking at</h2>
         <p className="support">
-          This tool compares Coles and Woolworths <strong>one suburb at a time</strong>. Use the{" "}
-          <strong>View by</strong> toggle at the top to switch between two levels of detail:
+          Retail CI compares Coles and Woolworths <strong>one suburb at a time</strong>. Use the{" "}
+          <strong>View by</strong> control in the top bar to switch between two levels of detail:
         </p>
         <ul>
           <li>
@@ -74,18 +74,18 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
           </li>
         </ul>
         <p>
-          Both views come from the same scrape — switching does not re-run collection. Category rows
+          Both views come from the same collection run — switching does not re-collect. Category rows
           show bilingual names (what each retailer calls that part of the store). Subcategory rows
           show the Woolworths label plus the parent aisle family.
         </p>
         <ul>
           <li>
-            Right now the live suburb is <strong>Ashfield</strong>. More suburbs can be added later
+            Right now the live suburb is <strong>Ashfield</strong>. More locations can be added later
             using the same layout.
           </li>
           <li>
             We always show the full taxonomy list, even if we have not finished collecting products
-            for one of them yet. Those rows say <em>awaiting scrape</em> until data arrives.
+            for one of them yet. Those rows say <em>data still filling in</em> until coverage arrives.
           </li>
           <li>
             Personal care is just one aisle family on the list — the same as bakery or drinks. There
@@ -123,7 +123,7 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
         </ol>
         <p>
           Coverage is uneven: Woolworths subcategories are native for most SKUs; Coles subcategory
-          assignment is partial (roughly one third of Coles SKUs today). Subcategory scoreboards
+          assignment is partial (roughly one third of Coles SKUs today). Subcategory boards
           therefore under-count Coles until more products are matched or inferred.
         </p>
       </section>
@@ -135,7 +135,7 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
           say “Health &amp; Beauty” while Woolworths says “Personal Care.”
         </p>
         <p>
-          On the scoreboard we show three names side by side:
+          On the Overview board we show three names side by side:
         </p>
         <ul>
           <li>
@@ -267,20 +267,21 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
       <section className="panel panel--cream" id="floor-map">
         <h2>Floor maps — which aisles sit next to each other</h2>
         <p className="support">
-          The <strong>Floor map</strong> tab plots every product that has an in-store map pin on an
-          X–Y plane, separately for Coles and for Woolworths.
+          The <strong>Floor map</strong> tab draws each store as a coloured shelf plan — one block
+          per bay, using in-store map coordinates.
         </p>
         <ul>
           <li>
-            Colour follows the <strong>Category / Subcategory</strong> toggle at the top of the
-            scoreboard, so you can see major aisle families or finer shelf groups.
+            Colour follows the <strong>Category / Subcategory</strong> toggle. Each bay is shaded by
+            its dominant group; tap a bay to see aisle, side, and mix.
           </li>
           <li>
-            Labels mark the centre of gravity of each group (where most of its pins sit).
+            <strong>Drag</strong> to pan, <strong>pinch</strong> or scroll to zoom,{" "}
+            <strong>double-tap</strong> to reset the view. Use <strong>Both stores</strong> or pick
+            one banner for a larger iPad-friendly canvas.
           </li>
           <li>
-            Hover a legend chip to highlight that group and dim everything else — handy for
-            spotting neighbours.
+            Legend chips highlight every bay belonging to that category across the plan.
           </li>
         </ul>
         <p>
@@ -366,7 +367,7 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
       <section className="panel panel--lilac" id="overlap">
         <h2>When we say the same product is in both stores</h2>
         <p className="support">
-          We do not have barcodes in the scrape data, so “matched pairs” are found by{" "}
+          We do not have barcodes in the collected product data, so “matched pairs” are found by{" "}
           <strong>same brand + similar product name</strong> — not by scanning identical GTINs.
         </p>
         <p>In plain steps:</p>
@@ -421,14 +422,13 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
         <h2>Keeping the numbers up to date</h2>
         <p className="support">
           Product lists for Ashfield are still being collected in the background. When a new batch
-          is ready, the team refreshes the comparison storey and reopens this dashboard so the
-          scoreboards pick up the latest figures.
+          is ready, the comparison is refreshed so boards pick up the latest figures.
         </p>
         <p>
           Until then, some Woolworths (or Coles) cells may look thin or empty. That usually means
           data is still arriving — not that the aisle is truly empty in the real store.
         </p>
       </section>
-    </main>
+    </div>
   );
 }

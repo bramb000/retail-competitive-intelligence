@@ -40,4 +40,4 @@ GitHub Actions rebuilds and deploys to Pages automatically.
 
 - [SCRAPING.md](SCRAPING.md) — how data is scraped (end-to-end)
 - [lake/SILVER_GOLD.md](lake/SILVER_GOLD.md) — bronze → silver → gold transforms
-- [apps/store-ci/README.md](apps/store-ci/README.md) — dashboard scoreboards
+- [apps/store-ci/README.md](apps/store-ci/README.md) — Retail CI dashboard

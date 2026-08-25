@@ -28,20 +28,18 @@ export function PriceCompetitionBoard({ data, grain, locationName, onSelect, onO
   const aligned = rows.filter((r) => r.status === "aligned").length;
   const colesCheaper = rows.filter((r) => r.cheaper_on_median === "Coles").length;
   const wwCheaper = rows.filter((r) => r.cheaper_on_median === "Woolworths").length;
-  const nounMany = grainNoun(grain);
   const nounOne = grainNoun(grain, "one");
 
   return (
     <>
       <header className="hero">
         <p className="eyebrow">
-          {grainTitle(grain)} × {locationName}
+          {grainTitle(grain)} · {locationName}
         </p>
-        <h1>Where {nounMany} compete on price</h1>
+        <h1>Where prices diverge</h1>
         <p>
-          Median shelf price by {nounOne} at {locationName}. Hot gaps (&gt;15%) often mean mix
-          differences while one banner’s scrape is thin — treat as directional until both sides are
-          deep.
+          Median shelf price by {nounOne} at {locationName}. Large gaps can reflect mix differences
+          when one side is thin — treat as directional until both ranges are deep.
         </p>
         <p className="hero-methods-link">
           <button type="button" className="text-link" onClick={() => onOpenMethods("price-race")}>
@@ -50,7 +48,7 @@ export function PriceCompetitionBoard({ data, grain, locationName, onSelect, onO
         </p>
       </header>
 
-      <section className="kpi-grid" aria-label="Price race summary">
+      <section className="kpi-grid" aria-label="Price summary">
         <div className="kpi-card">
           <div className="kpi-label">Large gaps</div>
           <div className="kpi-value">{intFmt(hot)}</div>
@@ -87,7 +85,7 @@ export function PriceCompetitionBoard({ data, grain, locationName, onSelect, onO
       </section>
 
       <section className="panel">
-        <h2>Price race table</h2>
+        <h2>Price table</h2>
         <p className="support">
           Gap % compares Coles middle price to Woolworths middle price. Negative means Coles is
           cheaper on that middle price.

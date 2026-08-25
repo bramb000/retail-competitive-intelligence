@@ -14,7 +14,7 @@ export function GrainToggle({ grain, onGrain }: Props) {
   const active = OPTIONS.find((o) => o.id === grain) ?? OPTIONS[0];
   return (
     <div className="grain-toggle-wrap">
-      <div className="location-picker grain-toggle" role="group" aria-label="Scoreboard grain">
+      <div className="location-picker grain-toggle" role="group" aria-label="View grain">
         <span className="location-picker-label">View by</span>
         {OPTIONS.map((opt) => (
           <button

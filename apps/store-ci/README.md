@@ -1,9 +1,10 @@
-# Macro store competitive intelligence
+# Retail CI
 
 **Grain:** category × location (Ashfield is the only live location today).
 
-Full-store Coles ↔ Woolworths scoreboards in shared commercial language — not a single-category
-app. Scrapers can still be filling bronze; empty categories show as *awaiting scrape*.
+Full-store Coles ↔ Woolworths competitive intelligence in shared commercial language — aisle
+space, dominance, price, everyday staples, and floor layout. Empty categories show as *data still
+filling in* while coverage completes.
 
 ## Run
 
@@ -20,14 +21,18 @@ After scrapers / ETL:
 ./run_store_ci
 ```
 
-## Scoreboards (at the active location)
+## Boards (at the active location)
 
-- **Categories** — full glossary taxonomy + observed gold aisles; bilingual labels
+- **Overview** — aisle space and range; bilingual labels
 - **Dominance** — who owns each category (bay → assortment)
-- **Price race** — category median gaps
-- **Known value** — staples that shape store price perception
+- **Price** — category median gaps
+- **Staples** — everyday products that shape price perception
+- **Floor** — store layout by aisle
 - Category drill-in for any department at this location
+- **Methods** — plain-language guide to how numbers are built
+
+Deep links use hash routes, e.g. `#/dominance`, `#/overview/dept/<id>`, `#/methods/grain`.
 
 ## Deprecated
 
-`apps/ashfield-pc` (Personal Care-only) is superseded. `./run_pc_dashboard` redirects here.
+`apps/ashfield-pc` (Personal Care–only) is superseded. `./run_pc_dashboard` redirects here.
