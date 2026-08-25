@@ -60,7 +60,7 @@ jobs:
           VALIDATE_MARKDOWN: true
           VALIDATE_JSON: true
 
-          # Local run artifacts and reverse-engineering tooling output —
-          # never lint-worthy source (data/ is committed scraped data,
+          # Local run artifacts, reverse-engineering tooling, and generated QA
+          # reports — never lint-worthy source (data/ is committed scraped data,
           # auth/ and .tools/ hold captured-credential/APK tooling).
-          FILTER_REGEX_EXCLUDE: (^|/)(data|auth|\.tools|lake/eval)/.*|(^|/)lake/QA_.*\.md$
+          FILTER_REGEX_EXCLUDE: '(^|/)(data|auth|\\.tools|lake/eval|lake/QA_)/.*'

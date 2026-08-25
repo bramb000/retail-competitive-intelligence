@@ -134,17 +134,17 @@ def parse_unit_rate(unit_price: Optional[str]) -> Optional[UnitRate]:
     qty = float(m.group("qty") or 1)
     unit = m.group("unit").lower()
     if unit in {"lt", "l"}:
-        family, base = "volume", "l"
+        family = "volume"
     elif unit == "ml":
-        family, base = "volume", "l"
+        family = "volume"
         qty = qty / 1000.0
     elif unit == "kg":
-        family, base = "mass", "kg"
+        family = "mass"
     elif unit == "g":
-        family, base = "mass", "kg"
+        family = "mass"
         qty = qty / 1000.0
     else:
-        family, base = "count", "ea"
+        family = "count"
     if qty <= 0:
         return None
     return UnitRate(rate=rate / qty, family=family, raw=text)
