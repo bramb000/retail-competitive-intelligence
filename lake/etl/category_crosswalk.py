@@ -93,9 +93,7 @@ def recommend_from_matches(matches: Sequence[Dict[str, Any]]) -> List[Dict[str, 
         total = sum(counter.values())
         ww_l0, support = counter.most_common(1)[0]
         share = support / total if total else 0.0
-        ok = support >= MIN_SUPPORT_ABSOLUTE or (
-            support >= MIN_SUPPORT_WEAK and share >= MIN_VOTE_SHARE
-        )
+        ok = support >= MIN_SUPPORT_ABSOLUTE or (support >= MIN_SUPPORT_WEAK and share >= MIN_VOTE_SHARE)
         if not ok:
             logger.info(
                 "crosswalk skip slug=%s best=%s support=%d share=%.2f total=%d",

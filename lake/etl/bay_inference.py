@@ -155,11 +155,7 @@ def infer_coles_bays(coles_rows: List[Dict[str, Any]], ww_pitch: Optional[float]
         clusters.sort(key=lambda c: c[0] if axis == "x" else c[1])
 
         for i in range(1, len(clusters)):
-            gap = abs(
-                (clusters[i][0] - clusters[i - 1][0])
-                if axis == "x"
-                else (clusters[i][1] - clusters[i - 1][1])
-            )
+            gap = abs((clusters[i][0] - clusters[i - 1][0]) if axis == "x" else (clusters[i][1] - clusters[i - 1][1]))
             if gap > 1e-6:
                 pin_gaps.append(gap)
 

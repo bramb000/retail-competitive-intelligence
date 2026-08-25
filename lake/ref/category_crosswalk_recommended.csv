@@ -1,14 +1,15 @@
 coles_category_slug,woolworths_category,woolworths_subcategory,match_support,vote_share,source,notes
-bakery,Bakery,Sandwich Ingredients,24,1.0000,recommended,votes=24;candidates={'Bakery': 24}
-chips-chocolates-snacks,Snacks & Confectionery,Biscuits & Crackers,140,0.6635,recommended,"votes=211;candidates={'Snacks & Confectionery': 140, 'Lunch Box': 31, 'Pantry': 34, 'Health & Wellness': 5, 'Dairy, Eggs & Fridge': 1}"
-cleaning-laundry,Cleaning & Maintenance,Cleaning Goods,123,1.0000,recommended,votes=123;candidates={'Cleaning & Maintenance': 123}
-dairy-eggs-fridge,"Dairy, Eggs & Fridge",Cheese,200,0.9174,recommended,"votes=218;candidates={'Dairy, Eggs & Fridge': 200, 'Pantry': 6, 'Freezer': 1, 'Poultry, Meat & Seafood': 8, 'Deli': 1, 'Drinks': 1, 'Cleaning & Maintenance': 1}"
-deli,Deli,Deli Meats,14,0.5185,recommended,"votes=27;candidates={'Deli': 14, 'Poultry, Meat & Seafood': 7, 'Pantry': 1, 'Dairy, Eggs & Fridge': 2, 'Snacks & Confectionery': 3}"
-dietary-world-foods,Health & Wellness,Health Foods,36,0.3956,recommended,"votes=91;candidates={'Lunch Box': 3, 'Freezer': 30, 'Pantry': 10, 'Health & Wellness': 36, 'International Foods': 1, 'Drinks': 6, 'Snacks & Confectionery': 5}"
-drinks,Drinks,"Cordials, Juices & Iced Teas",180,0.9524,recommended,"votes=189;candidates={'Drinks': 180, 'Pantry': 6, 'Freezer': 2, 'Dairy, Eggs & Fridge': 1}"
-frozen,Freezer,Ice Cream,95,0.9896,recommended,"votes=96;candidates={'Freezer': 95, 'Pantry': 1}"
-health-beauty,Personal Care,Hair Care,340,0.8374,recommended,"votes=406;candidates={'Personal Care': 340, 'Health & Wellness': 66}"
-home-garden,Home & Lifestyle,Clothing & Accessories,19,0.7600,recommended,"votes=25;candidates={'Home & Lifestyle': 19, 'Cleaning & Maintenance': 6}"
-meat-seafood,"Poultry, Meat & Seafood",Seafood,7,0.6364,recommended,"votes=11;candidates={'Poultry, Meat & Seafood': 7, 'Deli': 2, 'Freezer': 2}"
-pantry,Pantry,Baking,557,0.8827,recommended,"votes=631;candidates={'Pantry': 557, 'Snacks & Confectionery': 3, 'Health & Wellness': 54, 'Drinks': 9, 'Lunch Box': 5, 'Dairy, Eggs & Fridge': 1, 'Freezer': 2}"
-pet,Pet,Cat & Kitten,68,1.0000,recommended,votes=68;candidates={'Pet': 68}
+bakery,Bakery,Sandwich Ingredients,36,0.9474,recommended,"votes=38;candidates={'Bakery': 36, 'Deli': 1, 'Lunch Box': 1}"
+chips-chocolates-snacks,Snacks & Confectionery,Confectionery,256,0.6052,recommended,"votes=423;candidates={'Snacks & Confectionery': 256, 'Lunch Box': 66, 'Pantry': 83, 'Poultry, Meat & Seafood': 1, 'Health & Wellness': 15, 'Dinner': 1, 'Dairy, Eggs & Fridge': 1}"
+cleaning-laundry,Cleaning & Maintenance,Cleaning Goods,283,0.9826,recommended,"votes=288;candidates={'Cleaning & Maintenance': 283, 'Personal Care': 5}"
+dairy-eggs-fridge,"Dairy, Eggs & Fridge",Snacks,375,0.8971,recommended,"votes=418;candidates={'Dairy, Eggs & Fridge': 375, 'Pantry': 15, 'Freezer': 3, 'Poultry, Meat & Seafood': 14, 'Deli': 5, 'Dinner': 1, 'Drinks': 2, 'Bakery': 2, 'Cleaning & Maintenance': 1}"
+deli,Deli,Deli Meats,30,0.6122,recommended,"votes=49;candidates={'Deli': 30, 'Snacks & Confectionery': 5, 'Poultry, Meat & Seafood': 11, 'Pantry': 1, 'Dairy, Eggs & Fridge': 2}"
+dietary-world-foods,Health & Wellness,Health Foods,81,0.4133,recommended,"votes=196;candidates={'Lunch Box': 5, 'Freezer': 61, 'Pantry': 29, 'Dairy, Eggs & Fridge': 1, 'Health & Wellness': 81, 'Snacks & Confectionery': 8, 'International Foods': 2, 'Poultry, Meat & Seafood': 2, 'Drinks': 7}"
+drinks,Drinks,Tea & Coffee,358,0.9275,recommended,"votes=386;candidates={'Drinks': 358, 'Pantry': 19, 'Freezer': 4, 'Dairy, Eggs & Fridge': 2, 'Health & Wellness': 3}"
+frozen,Freezer,Ice Cream,198,0.9565,recommended,"votes=207;candidates={'Freezer': 198, 'Dairy, Eggs & Fridge': 1, 'Pantry': 6, 'Bakery': 1, 'Snacks & Confectionery': 1}"
+fruit-vegetables,Pantry,Vegetables,7,0.5000,recommended,"votes=14;candidates={'Pantry': 7, 'Health & Wellness': 6, 'Fruit & Veg': 1}"
+health-beauty,Personal Care,Hair Care,817,0.7708,recommended,"votes=1060;candidates={'Personal Care': 817, 'Health & Wellness': 243}"
+home-garden,Cleaning & Maintenance,Garden & Outdoors,40,0.5263,recommended,"votes=76;candidates={'Cleaning & Maintenance': 40, 'Home & Lifestyle': 27, 'Electronics': 8, 'Baby': 1}"
+meat-seafood,"Poultry, Meat & Seafood",Seafood,12,0.7500,recommended,"votes=16;candidates={'Poultry, Meat & Seafood': 12, 'Deli': 2, 'Freezer': 2}"
+pantry,Pantry,Asian,1285,0.8880,recommended,"votes=1447;candidates={'Pantry': 1285, 'Snacks & Confectionery': 4, 'Drinks': 20, 'International Foods': 1, 'Health & Wellness': 122, 'Freezer': 4, 'Poultry, Meat & Seafood': 3, 'Lunch Box': 7, 'Dairy, Eggs & Fridge': 1}"
+pet,Pet,Cat & Kitten,154,1.0000,recommended,votes=154;candidates={'Pet': 154}

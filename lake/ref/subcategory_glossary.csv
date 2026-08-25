@@ -1,0 +1,87 @@
+shared_parent,alias_label,shared_subcategory,target_parent,priority,notes
+Meat Seafood & Deli,Deli,Deli Meats,,10,Coles coarse override legacy → WW Deli Meats
+Meat Seafood & Deli,Deli Meats,Deli Meats,,11,
+Meat Seafood & Deli,Deli Specialties,Deli Specialties,,12,
+Meat Seafood & Deli,Poultry,Poultry,,13,
+Meat Seafood & Deli,Seafood,Seafood,,14,
+Meat Seafood & Deli,Frozen Seafood,Seafood,,15,Roll frozen seafood into Seafood for CI compare
+Meat Seafood & Deli,Meat,Meat,,16,
+Meat Seafood & Deli,Mince,Meat,,17,
+Meat Seafood & Deli,"Ham, Bacon & Smallgoods","Ham, Bacon & Smallgoods",,18,
+Personal Care,Vitamins & Supplements,Vitamins,,20,
+Personal Care,Vitamins,Vitamins,,21,
+Personal Care,Snacks,Snacks,Pantry,22,WW Health & Wellness snacks → Pantry Snacks
+Drinks,Tea & Coffee,Tea & Coffee,,30,
+Drinks,Coffee,Tea & Coffee,,31,
+Drinks,Tea,Tea & Coffee,,32,
+Drinks,Soft Drinks,Soft Drinks,,33,
+Drinks,Sports & Energy Drinks,Sports & Energy Drinks,,34,
+Drinks,Flavoured Milk,Milk,,35,
+Drinks,Long Life Milk,Milk,,36,
+Drinks,Milk,Milk,,37,
+Drinks,Juice,"Cordials, Juices & Iced Teas",,38,Coles keyword → WW Iris label
+Drinks,"Cordials, Juices & Iced Teas","Cordials, Juices & Iced Teas",,39,
+Pantry,Desserts,Desserts,,40,
+Pantry,"Cream, Custard & Desserts",Desserts,,41,
+Pantry,Indian & South Asian,Asian,,42,
+Pantry,Asian,Asian,,43,
+Pantry,Snacks,Snacks,,44,
+Dairy Eggs & Fridge,Indian & South Asian,Asian,,50,
+Dairy Eggs & Fridge,Asian,Asian,,51,
+Dairy Eggs & Fridge,Prepared Vegetables,Vegetables,,52,
+Dairy Eggs & Fridge,Vegetables,Vegetables,,53,
+Dairy Eggs & Fridge,Eggs,"Eggs, Butter & Margarine",,54,Coles keyword split → WW combined L1
+Dairy Eggs & Fridge,Butter & Margarine,"Eggs, Butter & Margarine",,55,
+Dairy Eggs & Fridge,"Eggs, Butter & Margarine","Eggs, Butter & Margarine",,56,
+Frozen,Indian & South Asian,Asian,,60,
+Frozen,Asian,Asian,,61,
+Frozen,Pizza,Frozen Pizzas,,62,
+Frozen,Frozen Pizzas,Frozen Pizzas,,63,
+Frozen,Frozen Fruit & Vegetables,Frozen Vegetables,,64,Prefer larger WW frozen veg bucket
+Frozen,Frozen Fruit,Frozen Fruit,,65,
+Frozen,Frozen Vegetables,Frozen Vegetables,,66,
+Cleaning & Maintenance,Kitchen Appliances,Appliances,,70,
+Cleaning & Maintenance,Appliances,Appliances,,71,
+Home & Lifestyle,Kitchen Appliances,Appliances,,80,
+Home & Lifestyle,Appliances,Appliances,,81,
+Everyday Market,Home Appliances,Appliances,,90,
+Everyday Market,Appliances,Appliances,,91,
+Bakery,Bread,Packaged Bread & Bakery,,100,Coles keyword Bread → WW Iris packaged bread
+Bakery,Packaged Bread & Bakery,Packaged Bread & Bakery,,101,
+Bakery,Cakes & Desserts,Packaged Bread & Bakery,,102,No WW cakes L1 at Ashfield — roll into packaged bakery
+Bakery,Wraps & Flatbreads,Sandwich Ingredients,,103,
+Bakery,Sandwich Ingredients,Sandwich Ingredients,,104,
+Bakery,In-Store Bakery,In-Store Bakery,,105,
+Lunch Box,Snacks,Snacks,Pantry,110,WW Lunch Box snacks → Pantry Snacks (no Coles Lunch Box L0)
+Home & Lifestyle,Sports & Fitness,"Sport, Fitness & Outdoor Activities",,120,Alias WW Everyday Market sports label
+Home & Lifestyle,"Sport, Fitness & Outdoor Activities","Sport, Fitness & Outdoor Activities",,121,
+Everyday Market,Sports & Fitness,"Sport, Fitness & Outdoor Activities",Home & Lifestyle,122,
+Cleaning & Maintenance,Batteries & Power,Batteries & Power,,130,
+Home & Lifestyle,Batteries & Power,Batteries & Power,Cleaning & Maintenance,131,Coles battery keywords under Home → Cleaning with WW
+Everyday Market,Pantry,Confectionery,Pantry,140,WW Everyday Market pantry/showbags → Pantry confectionery
+Drinks,Pantry,Confectionery,Pantry,141,Misfiled WW drinks-pantry SKUs
+Everyday Market,Appliances,Appliances,Home & Lifestyle,142,
+Everyday Market,Phones & Accessories,Phones & Accessories,Electronics,143,
+Everyday Market,Manchester & Bedding,Manchester & Bedding,Home & Lifestyle,144,
+Everyday Market,Outdoor Living,Outdoor Living,Home & Lifestyle,145,
+Everyday Market,Cleaning & Maintenance,Cleaning Goods,Cleaning & Maintenance,146,
+Everyday Market,Electronics,Electronics,Electronics,147,
+Everyday Market,Bathroom Towels & Accessories,Bathroom Towels & Accessories,Home & Lifestyle,148,
+Cleaning & Maintenance,Appliances,Appliances,Home & Lifestyle,149,
+Cleaning & Maintenance,Manchester & Bedding,Manchester & Bedding,Home & Lifestyle,150,
+Cleaning & Maintenance,Outdoor Living,Outdoor Living,Home & Lifestyle,151,
+Cleaning & Maintenance,Hardware,Hardware,Home & Lifestyle,152,WW hardware under Cleaning → Home with Coles keyword Hardware
+Home & Lifestyle,Hardware,Hardware,,153,
+Home & Lifestyle,Phones & Accessories,Phones & Accessories,Electronics,154,
+Electronics,Phones & Accessories,Phones & Accessories,,155,
+Electronics,Headphones,Phones & Accessories,,156,
+Dairy Eggs & Fridge,Dips & Pate,Deli Specialties,,160,WW dips L1 → Coles Deli Specialties
+Pantry,Dips & Pate,Deli Specialties,Dairy Eggs & Fridge,161,
+Cleaning & Maintenance,Cleaning & Maintenance,Cleaning Goods,,162,WW meta L1 → Cleaning Goods
+Drinks,Drinks,Soft Drinks,,163,WW meta drinks L1
+Cleaning & Maintenance,Sports & Fitness,"Sport, Fitness & Outdoor Activities",Home & Lifestyle,164,
+Personal Care,Sports & Fitness,"Sport, Fitness & Outdoor Activities",Home & Lifestyle,165,
+Cleaning & Maintenance,Electronics,Electronics,Electronics,166,
+Electronics,Electronics,Electronics,,167,
+Pantry,Greek,"European, UK & Irish",,168,Narrow WW Greek → broader European aisle when present
+

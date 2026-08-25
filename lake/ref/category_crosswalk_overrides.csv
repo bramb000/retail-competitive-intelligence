@@ -1,11 +1,11 @@
 coles_category_slug,woolworths_category,woolworths_subcategory,match_support,vote_share,source,notes
 fruit-vegetables,Fruit & Vegetables,,manual,1.0,override,Seed glossary — refine when Iris produce lands
-meat-seafood,Meat Seafood & Deli,Meat,manual,1.0,override,Seed glossary
-deli,Meat Seafood & Deli,Deli,manual,1.0,override,Seed glossary
+meat-seafood,Meat Seafood & Deli,,manual,1.0,override,L0 only — L1 from SKU match / inference (Poultry Seafood Meat …)
+deli,Meat Seafood & Deli,,manual,1.0,override,L0 only — L1 from SKU match / inference
 bakery,Bakery,,manual,1.0,override,Seed glossary
 dairy-eggs-fridge,"Dairy, Eggs & Fridge",,manual,1.0,override,Seed glossary — literal WW L0
 frozen,Freezer,,manual,1.0,override,WW Freezer L0
-chips-chocolates-snacks,Pantry,Snacks,manual,1.0,override,Seed glossary
+chips-chocolates-snacks,Pantry,,manual,1.0,override,L0 only — L1 from SKU match / inference (Snacks Confectionery …)
 pantry,Pantry,,manual,1.0,override,Seed glossary
 dietary-world-foods,International Foods,,manual,1.0,override,Prefer International Foods when present
 drinks,Drinks,,manual,1.0,override,Seed glossary

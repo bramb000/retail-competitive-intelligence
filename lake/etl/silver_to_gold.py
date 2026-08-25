@@ -76,15 +76,13 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         parts.append(f"({_SKU_FACTS_SELECT})")
         params.append(str(ww))
     if not parts:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE gold.sku_facts (
                 retailer VARCHAR, store_id VARCHAR, retailer_product_id BIGINT,
                 name VARCHAR, unified_category VARCHAR, price_now DOUBLE, price_was DOUBLE,
                 is_promo BOOLEAN, bay_key VARCHAR, location_class VARCHAR, aisle_facing INTEGER
             )
-            """
-        )
+            """)
         logger.warning("silver_to_gold empty sku_facts — no silver product jsonl")
     elif len(parts) == 1:
         conn.execute("CREATE TABLE gold.sku_facts AS " + parts[0], params)
@@ -92,8 +90,7 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         conn.execute("CREATE TABLE gold.sku_facts AS " + " UNION ALL BY NAME ".join(parts), params)
 
     conn.execute("DROP TABLE IF EXISTS gold.category_pricing")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE gold.category_pricing AS
         SELECT
             retailer,
@@ -111,12 +108,10 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         FROM gold.sku_facts
         WHERE unified_category IS NOT NULL AND unified_category <> 'Unmapped'
         GROUP BY 1, 2
-        """
-    )
+        """)
 
     conn.execute("DROP TABLE IF EXISTS gold.subcategory_pricing")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE gold.subcategory_pricing AS
         SELECT
             retailer,
@@ -136,12 +131,10 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         WHERE unified_category IS NOT NULL AND unified_category <> 'Unmapped'
           AND unified_subcategory IS NOT NULL AND unified_subcategory <> ''
         GROUP BY 1, 2, 3
-        """
-    )
+        """)
 
     conn.execute("DROP TABLE IF EXISTS gold.category_space")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE gold.category_space AS
         WITH placed AS (
             SELECT retailer, bay_key, unified_category, aisle_facing
@@ -199,12 +192,10 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         LEFT JOIN placed_skus p
           ON p.retailer = f.retailer AND p.unified_category = f.unified_category
         GROUP BY f.retailer, f.unified_category, t.store_bay_count, p.placed_skus, p.facing_sum
-        """
-    )
+        """)
 
     conn.execute("DROP TABLE IF EXISTS gold.subcategory_space")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE gold.subcategory_space AS
         WITH placed AS (
             SELECT retailer, bay_key, unified_category, unified_subcategory, aisle_facing
@@ -266,8 +257,7 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
          AND p.unified_category = f.unified_category
          AND p.unified_subcategory = f.unified_subcategory
         GROUP BY f.retailer, f.unified_category, f.unified_subcategory, t.store_bay_count, p.placed_skus, p.facing_sum
-        """
-    )
+        """)
 
     conn.execute("DROP TABLE IF EXISTS gold.category_venn")
     if venn.exists():
@@ -276,8 +266,7 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         conn.execute("CREATE TABLE gold.category_venn (side VARCHAR, unified_category VARCHAR)")
 
     conn.execute("DROP TABLE IF EXISTS gold.banner_compare")
-    conn.execute(
-        """
+    conn.execute("""
         CREATE TABLE gold.banner_compare AS
         SELECT
             coalesce(c.unified_category, w.unified_category) AS unified_category,
@@ -298,8 +287,7 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
             USING (unified_category)
         LEFT JOIN (SELECT * FROM gold.category_space WHERE retailer = 'Woolworths') ws
             USING (unified_category)
-        """
-    )
+        """)
 
     # Category-unification audit: fuzzy matches + effective crosswalk from silver.
     matches_path = silver_dir / "sku_matches.jsonl"
@@ -324,15 +312,13 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
             [str(matches_path)],
         )
     else:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE gold.sku_matches (
                 coles_id BIGINT, ww_id BIGINT, coles_name VARCHAR, ww_name VARCHAR,
                 brand VARCHAR, score DOUBLE, coles_categories VARCHAR[],
                 ww_l0 VARCHAR, ww_l1 VARCHAR
             )
-            """
-        )
+            """)
         logger.warning("silver_to_gold empty sku_matches — missing %s", matches_path)
 
     conn.execute("DROP TABLE IF EXISTS gold.category_crosswalk")
@@ -354,15 +340,13 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
             [str(crosswalk_path)],
         )
     else:
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE gold.category_crosswalk (
                 priority INTEGER, coles_category_slug VARCHAR, woolworths_category VARCHAR,
                 woolworths_subcategory VARCHAR, match_support INTEGER, vote_share DOUBLE,
                 source VARCHAR, notes VARCHAR
             )
-            """
-        )
+            """)
         logger.warning("silver_to_gold empty category_crosswalk — missing %s", crosswalk_path)
 
     export_dir = GOLD_ROOT / "exports"
@@ -381,8 +365,7 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
         conn.execute(f"COPY {table} TO ? (HEADER, DELIMITER ',')", [str(dest)])
         logger.info("gold export table=%s path=%s", table, dest)
 
-    counts = conn.execute(
-        """
+    counts = conn.execute("""
         SELECT
             (SELECT count(*) FROM gold.sku_facts) AS skus,
             (SELECT count(*) FROM gold.category_pricing) AS pricing_rows,
@@ -390,11 +373,9 @@ def run_silver_to_gold(silver_dir: Optional[Path] = None) -> Path:
             (SELECT count(*) FROM gold.category_venn) AS venn_rows,
             (SELECT count(*) FROM gold.sku_matches) AS match_rows,
             (SELECT count(*) FROM gold.category_crosswalk) AS crosswalk_rows
-        """
-    ).fetchone()
+        """).fetchone()
     logger.info(
-        "silver_to_gold done skus=%s pricing_rows=%s space_rows=%s venn_rows=%s "
-        "match_rows=%s crosswalk_rows=%s",
+        "silver_to_gold done skus=%s pricing_rows=%s space_rows=%s venn_rows=%s " "match_rows=%s crosswalk_rows=%s",
         counts[0],
         counts[1],
         counts[2],

@@ -5,20 +5,28 @@ from __future__ import annotations
 
 import json
 import math
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
-
-import duckdb
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 REPO = Path(__file__).resolve().parents[1]
-import sys
-
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from lake.etl.category_glossary import bilingual_blurb, glossary_by_ww_label, load_glossary
-from lake.etl.known_value_items import build_kvi_scoreboard
+import duckdb  # noqa: E402
+
+from lake.etl.category_glossary import (  # noqa: E402
+    bilingual_blurb,
+    build_gloss_index,
+    load_glossary,
+    resolve_shared_l1,
+    rollup_gold_by_shared,
+    shared_label_for_gold,
+    subcategory_alias_map,
+    subcategory_cross_parent_map,
+)
+from lake.etl.known_value_items import build_kvi_scoreboard  # noqa: E402
 
 GOLD_DB = REPO / "lake" / "gold" / "ashfield_compare.duckdb"
 OUT = REPO / "apps" / "store-ci" / "public" / "data" / "store_ci.json"
@@ -97,9 +105,7 @@ def _median(vals: Sequence[Optional[float]]) -> Optional[float]:
     return (nums[mid - 1] + nums[mid]) / 2.0
 
 
-def _finish_departments(
-    departments: List[Dict[str, Any]], coles_store_n: int, ww_store_n: int
-) -> List[Dict[str, Any]]:
+def _finish_departments(departments: List[Dict[str, Any]], coles_store_n: int, ww_store_n: int) -> List[Dict[str, Any]]:
     departments.sort(
         key=lambda d: (
             0 if d["data_status"] == "ready" else 1,
@@ -119,6 +125,50 @@ def _finish_departments(
     return departments
 
 
+# Weak / catch-all WW parents — Coles-empty L1s here merge into stronger parents
+# when the same subcategory label has Coles SKUs elsewhere.
+_WEAK_L1_PARENTS = frozenset({"Everyday Market", "Dinner", "Lunch Box"})
+
+
+def _auto_merge_coles_empty_l1(
+    mapped_l1,
+) -> Dict[Tuple[str, str], Tuple[str, str]]:
+    """Map (parent, sub) → (target_parent, sub) when Coles is empty but same sub has Coles elsewhere."""
+    from collections import defaultdict
+
+    counts: Dict[Tuple[str, str], Dict[str, int]] = defaultdict(lambda: {"Coles": 0, "Woolworths": 0})
+    for parent, sub, retailer in zip(
+        mapped_l1["_shared_parent"].tolist(),
+        mapped_l1["_shared_sub"].tolist(),
+        mapped_l1["retailer"].tolist(),
+    ):
+        if parent and sub:
+            counts[(str(parent), str(sub))][str(retailer)] += 1
+
+    by_sub: Dict[str, List[Tuple[str, int, int]]] = defaultdict(list)
+    for (parent, sub), c in counts.items():
+        by_sub[sub].append((parent, c["Coles"], c["Woolworths"]))
+
+    merge: Dict[Tuple[str, str], Tuple[str, str]] = {}
+    for (parent, sub), c in counts.items():
+        if c["Coles"] > 0:
+            continue
+        options = [(p, oc, ow) for p, oc, ow in by_sub[sub] if p != parent and oc > 0 and p not in _WEAK_L1_PARENTS]
+        if not options:
+            # Allow merge into weak only if that's the only Coles home (rare).
+            options = [(p, oc, ow) for p, oc, ow in by_sub[sub] if p != parent and oc > 0]
+        if not options:
+            continue
+        # Prefer non-weak targets, then most Coles SKUs.
+        options.sort(key=lambda t: (0 if t[0] not in _WEAK_L1_PARENTS else 1, -t[1]))
+        target = options[0][0]
+        # Always merge weak sources; also merge non-weak sources when clearly misplaced
+        # (same L1 name with Coles living under another strong parent).
+        if parent in _WEAK_L1_PARENTS or target != parent:
+            merge[(parent, sub)] = (target, sub)
+    return merge
+
+
 def export() -> Path:
     if not GOLD_DB.exists():
         payload = _empty_payload("Gold DB missing — run scrape_ashfield_deep.py --phase etl")
@@ -128,42 +178,35 @@ def export() -> Path:
         return OUT
 
     conn = duckdb.connect(str(GOLD_DB), read_only=True)
-    facts = conn.execute(
-        """
+    facts = conn.execute("""
         SELECT retailer, retailer_product_id, name, clean_brand, unified_category,
                unified_subcategory, price_now, price_was, unit_price, is_promo, bay_key,
                indoor_x, indoor_y, location_class
         FROM gold.sku_facts
-        """
-    ).fetchdf()
+        """).fetchdf()
     space_l0 = conn.execute("SELECT * FROM gold.category_space").fetchdf()
     space_l1 = conn.execute("SELECT * FROM gold.subcategory_space").fetchdf()
     pricing_l0 = conn.execute("SELECT * FROM gold.category_pricing").fetchdf()
-    pricing_l1 = conn.execute("SELECT * FROM gold.subcategory_pricing").fetchdf()
     matches = conn.execute("SELECT * FROM gold.sku_matches").fetchdf()
     crosswalk = conn.execute("SELECT * FROM gold.category_crosswalk").fetchdf()
     conn.close()
 
     glossary_rows = load_glossary()
-    gloss = glossary_by_ww_label(glossary_rows)
-    for g in list(gloss.values()):
-        gloss[g["shared_label"]] = g
-        ww = g.get("ww_label")
-        if ww:
-            gloss[ww] = g
+    gloss = build_gloss_index(glossary_rows)
 
     def gloss_for(cat: str) -> Dict[str, str]:
-        g = gloss.get(cat) or {}
+        shared = shared_label_for_gold(cat, gloss)
+        g = gloss.get(shared) or gloss.get(cat) or {}
         if g:
             return {
-                "shared_label": g.get("shared_label") or cat,
+                "shared_label": g.get("shared_label") or shared,
                 "coles_label": g.get("coles_aliases") or g.get("coles_label") or "—",
                 "ww_label": g.get("ww_label") or cat,
-                "blurb": bilingual_blurb(g.get("shared_label") or cat, gloss),
+                "blurb": bilingual_blurb(g.get("shared_label") or shared, gloss),
             }
         return {
-            "shared_label": cat,
-            "coles_label": "—" if cat != "Unmapped" else "Unmapped",
+            "shared_label": shared,
+            "coles_label": "—" if shared != "Unmapped" else "Unmapped",
             "ww_label": cat,
             "blurb": f"Coles: — · Woolworths: {cat}",
         }
@@ -256,17 +299,14 @@ def export() -> Path:
             seen_shared.add(shared)
             glossary_shared.append(shared)
 
-    gold_by_shared: Dict[str, List[str]] = {s: [] for s in glossary_shared}
-    orphan_gold: List[str] = []
-    for gc in sorted(gold_cats):
-        shared = gloss_for(gc)["shared_label"]
-        if shared in gold_by_shared:
-            if gc not in gold_by_shared[shared]:
-                gold_by_shared[shared].append(gc)
-        elif shared in seen_shared:
-            gold_by_shared.setdefault(shared, []).append(gc)
-        else:
-            orphan_gold.append(gc)
+    gold_by_shared = rollup_gold_by_shared(gold_cats, glossary_rows)
+    for shared in glossary_shared:
+        gold_by_shared.setdefault(shared, [])
+    orphan_gold = [
+        gc
+        for gc in sorted(gold_cats)
+        if shared_label_for_gold(gc, gloss) not in seen_shared and shared_label_for_gold(gc, gloss) == gc
+    ]
 
     l0: List[Dict[str, Any]] = []
     specs_l0: List[tuple] = [(s, gold_by_shared.get(s) or [], "glossary") for s in glossary_shared]
@@ -295,49 +335,106 @@ def export() -> Path:
         )
     l0 = _finish_departments(l0, coles_store_n, ww_store_n)
 
+    alias_map = subcategory_alias_map()
+    cross_parent = subcategory_cross_parent_map()
+
+    def shared_parent_sub(cat: Any, sub: Any) -> Optional[Tuple[str, str]]:
+        if cat is None or sub is None:
+            return None
+        parent = shared_label_for_gold(str(cat), gloss)
+        return resolve_shared_l1(parent, str(sub), alias_map=alias_map, cross_parent=cross_parent)
+
+    # Annotate mapped_l1 with shared parent + canonical subcategory for rollup.
+    mapped_l1 = mapped_l1.copy()
+    shared_pairs: List[Optional[Tuple[str, str]]] = []
+    for cat, sub in zip(mapped_l1["unified_category"].tolist(), mapped_l1["unified_subcategory"].tolist()):
+        shared_pairs.append(shared_parent_sub(cat, sub))
+    mapped_l1["_shared_parent"] = [p[0] if p else None for p in shared_pairs]
+    mapped_l1["_shared_sub"] = [p[1] if p else None for p in shared_pairs]
+    mapped_l1 = mapped_l1[mapped_l1["_shared_parent"].notna() & mapped_l1["_shared_sub"].notna()].copy()
+
+    # Second pass: merge Coles-empty L1 rows into parents that already have Coles for that label.
+    l1_merge = _auto_merge_coles_empty_l1(mapped_l1)
+    if l1_merge:
+        new_parents = []
+        new_subs = []
+        for sp, ss in zip(mapped_l1["_shared_parent"].tolist(), mapped_l1["_shared_sub"].tolist()):
+            dest = l1_merge.get((str(sp), str(ss)))
+            if dest:
+                new_parents.append(dest[0])
+                new_subs.append(dest[1])
+            else:
+                new_parents.append(sp)
+                new_subs.append(ss)
+        mapped_l1["_shared_parent"] = new_parents
+        mapped_l1["_shared_sub"] = new_subs
+
+    space_l1 = space_l1.copy()
+    space_pairs: List[Optional[Tuple[str, str]]] = []
+    for cat, sub in zip(space_l1["unified_category"].tolist(), space_l1["unified_subcategory"].tolist()):
+        space_pairs.append(shared_parent_sub(cat, sub))
+    space_l1["_shared_parent"] = [p[0] if p else None for p in space_pairs]
+    space_l1["_shared_sub"] = [p[1] if p else None for p in space_pairs]
+    if l1_merge:
+        new_parents = []
+        new_subs = []
+        for sp, ss in zip(space_l1["_shared_parent"].tolist(), space_l1["_shared_sub"].tolist()):
+            if sp is None or ss is None:
+                new_parents.append(sp)
+                new_subs.append(ss)
+                continue
+            dest = l1_merge.get((str(sp), str(ss)))
+            if dest:
+                new_parents.append(dest[0])
+                new_subs.append(dest[1])
+            else:
+                new_parents.append(sp)
+                new_subs.append(ss)
+        space_l1["_shared_parent"] = new_parents
+        space_l1["_shared_sub"] = new_subs
+
     l1: List[Dict[str, Any]] = []
     specs_l1 = sorted(
         {
-            (str(c), str(s))
-            for c, s in zip(mapped_l1["unified_category"].tolist(), mapped_l1["unified_subcategory"].tolist())
+            (str(p), str(s))
+            for p, s in zip(mapped_l1["_shared_parent"].tolist(), mapped_l1["_shared_sub"].tolist())
+            if p and s
         }
     )
-    for parent_cat, subcat in specs_l1:
-        parent_gloss = gloss_for(parent_cat)
-        cat_id = row_id(parent_cat, subcat)
+    for shared_parent, shared_sub in specs_l1:
+        parent_gloss = gloss_for(shared_parent)
+        cat_id = row_id(shared_parent, shared_sub)
+        native_keys = sorted(
+            {
+                f"{c}::{s}"
+                for c, s, sp, ss in zip(
+                    mapped_l1["unified_category"].tolist(),
+                    mapped_l1["unified_subcategory"].tolist(),
+                    mapped_l1["_shared_parent"].tolist(),
+                    mapped_l1["_shared_sub"].tolist(),
+                )
+                if sp == shared_parent and ss == shared_sub
+            }
+        )
+        mask = (mapped_l1["_shared_parent"] == shared_parent) & (mapped_l1["_shared_sub"] == shared_sub)
+        space_mask = (space_l1["_shared_parent"] == shared_parent) & (space_l1["_shared_sub"] == shared_sub)
         l1.append(
             make_dept(
                 cat_id=cat_id,
-                parent=parent_cat,
-                shared=subcat,
-                coles_label=subcat,
-                ww_label=subcat,
+                parent=shared_parent,
+                shared=shared_sub,
+                coles_label=shared_sub,
+                ww_label=shared_sub,
                 blurb=(
                     f"{parent_gloss['shared_label']} subcategory · "
                     f"Coles parent: {parent_gloss['coles_label']} · WW parent: {parent_gloss['ww_label']}"
                 ),
                 taxonomy="observed",
-                cf=mapped_l1[
-                    (mapped_l1["unified_category"] == parent_cat)
-                    & (mapped_l1["unified_subcategory"] == subcat)
-                    & (mapped_l1["retailer"] == "Coles")
-                ],
-                wf=mapped_l1[
-                    (mapped_l1["unified_category"] == parent_cat)
-                    & (mapped_l1["unified_subcategory"] == subcat)
-                    & (mapped_l1["retailer"] == "Woolworths")
-                ],
-                cs=space_l1[
-                    (space_l1["unified_category"] == parent_cat)
-                    & (space_l1["unified_subcategory"] == subcat)
-                    & (space_l1["retailer"] == "Coles")
-                ],
-                ws=space_l1[
-                    (space_l1["unified_category"] == parent_cat)
-                    & (space_l1["unified_subcategory"] == subcat)
-                    & (space_l1["retailer"] == "Woolworths")
-                ],
-                gold_keys=[cat_id],
+                cf=mapped_l1[mask & (mapped_l1["retailer"] == "Coles")],
+                wf=mapped_l1[mask & (mapped_l1["retailer"] == "Woolworths")],
+                cs=space_l1[space_mask & (space_l1["retailer"] == "Coles")],
+                ws=space_l1[space_mask & (space_l1["retailer"] == "Woolworths")],
+                gold_keys=native_keys,
             )
         )
     l1 = _finish_departments(l1, coles_store_n, ww_store_n)
@@ -348,6 +445,14 @@ def export() -> Path:
             l0_canon[gk] = d["id"]
         l0_canon[d["id"]] = d["id"]
     l1_canon: Dict[tuple[str, str], str] = {(d["parent_category"], d["shared_label"]): d["id"] for d in l1}
+    # Also resolve native (gold_cat, gold_sub) → shared L1 id for SKU rows / matches.
+    l1_native_canon: Dict[tuple[str, str], str] = {}
+    for d in l1:
+        for gk in d.get("gold_keys") or []:
+            if "::" in gk:
+                nat_cat, nat_sub = gk.split("::", 1)
+                l1_native_canon[(nat_cat, nat_sub)] = d["id"]
+            l1_native_canon[(d["parent_category"], d["shared_label"])] = d["id"]
 
     grain_l0 = {
         "departments": l0,
@@ -371,7 +476,22 @@ def export() -> Path:
         cat = _clean(r.get("unified_category"))
         sub = _clean(r.get("unified_subcategory"))
         l0_id = l0_canon.get(str(cat)) if cat and cat != "Unmapped" else None
-        l1_id = l1_canon.get((str(cat), str(sub))) if cat and sub else None
+        shared_parent = shared_label_for_gold(str(cat), gloss) if cat and cat != "Unmapped" else None
+        resolved = (
+            resolve_shared_l1(shared_parent, str(sub), alias_map=alias_map, cross_parent=cross_parent)
+            if shared_parent and sub
+            else None
+        )
+        if resolved and resolved in l1_merge:
+            resolved = l1_merge[resolved]
+        shared_sub = resolved[1] if resolved else None
+        if resolved:
+            shared_parent = resolved[0]
+        l1_id = None
+        if cat and sub:
+            l1_id = l1_native_canon.get((str(cat), str(sub)))
+            if not l1_id and shared_parent and shared_sub:
+                l1_id = l1_canon.get((shared_parent, shared_sub))
         row = {
             "retailer": r["retailer"],
             "id": int(r["retailer_product_id"]),
@@ -382,7 +502,7 @@ def export() -> Path:
             "subcategory_id": l1_id,
             "gold_category": str(cat) if cat else None,
             "shared_label": gloss_for(str(cat))["shared_label"] if l0_id else None,
-            "subcategory": _clean(sub),
+            "subcategory": shared_sub or _clean(sub),
             "price_now": _clean(r["price_now"]),
             "price_was": _clean(r["price_was"]),
             "unit_price": _clean(r["unit_price"]),
@@ -416,6 +536,17 @@ def export() -> Path:
     for _, m in matches.iterrows():
         ww_l0 = _clean(m["ww_l0"])
         ww_l1 = _clean(m["ww_l1"])
+        shared_parent = shared_label_for_gold(str(ww_l0), gloss) if ww_l0 else None
+        resolved = (
+            resolve_shared_l1(shared_parent, str(ww_l1), alias_map=alias_map, cross_parent=cross_parent)
+            if shared_parent and ww_l1
+            else None
+        )
+        if resolved and resolved in l1_merge:
+            resolved = l1_merge[resolved]
+        shared_sub = resolved[1] if resolved else None
+        if resolved:
+            shared_parent = resolved[0]
         match_rows.append(
             {
                 "location_id": LOCATION["id"],
@@ -428,7 +559,14 @@ def export() -> Path:
                 "ww_l0": ww_l0,
                 "ww_l1": ww_l1,
                 "category": l0_canon.get(str(ww_l0)) if ww_l0 else None,
-                "subcategory_id": l1_canon.get((str(ww_l0), str(ww_l1))) if ww_l0 and ww_l1 else None,
+                "subcategory_id": (
+                    (
+                        l1_native_canon.get((str(ww_l0), str(ww_l1)))
+                        or (l1_canon.get((shared_parent, shared_sub)) if shared_parent and shared_sub else None)
+                    )
+                    if ww_l0 and ww_l1
+                    else None
+                ),
             }
         )
 
@@ -524,12 +662,34 @@ def export() -> Path:
             "gold_db": str(GOLD_DB),
             "status": "ready",
             "caveats": [
-                "Toggle Category vs Subcategory. Category is the full aisle family. Subcategory uses Woolworths labels; Coles is mapped onto them.",
-                "Same-product matching is brand + similar name (not barcodes). Coles subcategories: inherit from a matched WW product first, else infer inside that parent aisle — never stamp a whole Coles department as one subcategory.",
-                "Bay share is “what share of this store’s identified shelf bays belongs to this aisle?” Mixed bays are split by product mix (fractional).",
-                "Coles does not publish bay numbers; we treat each distinct in-store map pin (per aisle side) as one bay. Woolworths bay numbers come from their app as reported.",
-                "Price gaps use the middle shelf price — pack sizes can differ, so treat large gaps as a prompt to look closer.",
-                "Refresh after new product data is loaded; thin or empty cells usually mean collection is still running.",
+                (
+                    "Toggle Category vs Subcategory. Category is the full aisle family. "
+                    "Subcategory uses Woolworths labels; Coles is mapped onto them."
+                ),
+                (
+                    "Same-product matching is brand + similar name (not barcodes). "
+                    "Coles subcategories: inherit from a matched WW product first, else "
+                    "infer inside that parent aisle — never stamp a whole Coles "
+                    "department as one subcategory."
+                ),
+                (
+                    "Bay share is “what share of this store’s identified shelf bays "
+                    "belongs to this aisle?” Mixed bays are split by product mix "
+                    "(fractional)."
+                ),
+                (
+                    "Coles does not publish bay numbers; we treat each distinct "
+                    "in-store map pin (per aisle side) as one bay. Woolworths bay "
+                    "numbers come from their app as reported."
+                ),
+                (
+                    "Price gaps use the middle shelf price — pack sizes can differ, "
+                    "so treat large gaps as a prompt to look closer."
+                ),
+                (
+                    "Refresh after new product data is loaded; thin or empty cells "
+                    "usually mean collection is still running."
+                ),
             ],
         },
         "grains": {
@@ -630,12 +790,7 @@ def _build_price_competition(departments: List[Dict[str, Any]]) -> List[Dict[str
     for d in departments:
         cm, wm = d.get("coles_median_price"), d.get("ww_median_price")
         gap = d.get("median_gap_pct_coles_vs_ww")
-        both = (
-            d["coles_skus"] > 0
-            and d["ww_skus"] > 0
-            and cm is not None
-            and wm is not None
-        )
+        both = d["coles_skus"] > 0 and d["ww_skus"] > 0 and cm is not None and wm is not None
         if not both:
             status = "not_comparable"
             cheaper = None
@@ -698,17 +853,17 @@ def _empty_payload(reason: str) -> Dict[str, Any]:
         "dominance": [],
         "price_competition": [],
         "known_value": [],
-            "known_value_summary": {
-                "defined": 0,
-                "both_priced": 0,
-                "comparable": 0,
-                "not_comparable": 0,
-                "coles_cheaper": 0,
-                "ww_cheaper": 0,
-                "ties": 0,
-                "coles_only": 0,
-                "ww_only": 0,
-            },
+        "known_value_summary": {
+            "defined": 0,
+            "both_priced": 0,
+            "comparable": 0,
+            "not_comparable": 0,
+            "coles_cheaper": 0,
+            "ww_cheaper": 0,
+            "ties": 0,
+            "coles_only": 0,
+            "ww_only": 0,
+        },
     }
     empty_totals = {
         "location_id": LOCATION["id"],

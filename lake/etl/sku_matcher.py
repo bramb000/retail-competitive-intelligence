@@ -12,6 +12,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
+from lake.etl.category_glossary import shared_label_for_gold
 from lake.io import iter_jsonl
 
 logger = logging.getLogger("hybrid_scraper.lake.sku_matcher")
@@ -44,6 +45,126 @@ _STOP = frozenset(
         "pk",
     }
 )
+
+# Shared-parent keyword → WW-style L1 when fuzzy match is too sparse.
+_KEYWORD_L1: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
+    "Meat Seafood & Deli": [
+        (("chicken", "turkey", "duck", "poultry", "drumstick", "tenderloin", "maryland"), "Poultry"),
+        (
+            (
+                "prawn",
+                "shrimp",
+                "salmon",
+                "barramundi",
+                "seafood",
+                "crab",
+                "oyster",
+                "mussel",
+                "fish fillet",
+                "tuna steak",
+            ),
+            "Seafood",
+        ),
+        (("ham", "bacon", "salami", "prosciutto", "pastrami", "frankfurt", "kransky"), "Ham, Bacon & Smallgoods"),
+        (("beef", "lamb", "pork", "veal", "mince", "steak", "sausage", "schnitzel", "rump", "scotch"), "Meat"),
+        (("cheese", "camembert", "brie", "cheddar", "bocconcini", "havarti"), "Cheese"),
+    ],
+    "Fruit & Vegetables": [
+        (("apple", "banana", "orange", "berry", "grape", "mango", "fruit"), "Fruit"),
+        (("lettuce", "salad", "spinach", "rocket"), "Salad"),
+        (("potato", "carrot", "onion", "broccoli", "vegetable", "tomato", "cucumber", "capsicum"), "Vegetables"),
+    ],
+    "Pantry": [
+        (("chip", "crisp", "corn chip"), "Chips"),
+        (("chocolate", "lolly", "candy", "confection"), "Confectionery"),
+        (("biscuit", "cookie", "cracker"), "Biscuits & Crackers"),
+        (("snack", "popcorn", "pretzel", "nut mix"), "Snacks"),
+        (("pasta", "rice", "noodle"), "Pasta, Rice & Grains"),
+        (("sauce", "mayo", "ketchup", "mustard"), "Condiments"),
+        (("cereal", "muesli", "oat"), "Breakfast & Spreads"),
+    ],
+    "Liquor": [
+        (("wine", "champagne", "prosecco"), "Wine"),
+        (("beer", "lager", "ale", "cider"), "Beer"),
+        (("vodka", "whisky", "whiskey", "gin", "rum", "spirit"), "Spirits"),
+    ],
+    "International Foods": [
+        (("asian", "japanese", "chinese", "korean", "thai", "vietnamese"), "Asian"),
+        (("mexican", "latin"), "Mexican & Latin American"),
+        (("middle eastern", "hummus", "falafel"), "Middle Eastern"),
+        (("indian", "curry paste", "tikka"), "Indian & South Asian"),
+    ],
+    "Dairy Eggs & Fridge": [
+        (("yoghurt", "yogurt"), "Yoghurt"),
+        (("milk", "cream"), "Milk"),
+        (("butter", "margarine", "egg"), "Eggs, Butter & Margarine"),
+        (("cheese",), "Cheese"),
+    ],
+    "Frozen": [
+        (("ice cream", "gelato", "icy pole"), "Ice Cream"),
+        (("frozen vegetable",), "Frozen Vegetables"),
+        (("frozen fruit",), "Frozen Fruit"),
+        (("frozen meal", "ready meal"), "Frozen Meals"),
+        (("frozen meat", "frozen chicken"), "Frozen Meat"),
+        (("pizza",), "Frozen Pizzas"),
+    ],
+    "Bakery": [
+        (("bread", "loaf", "sourdough", "cake", "muffin", "cupcake", "brownie"), "Packaged Bread & Bakery"),
+        (("wrap", "tortilla", "pita"), "Sandwich Ingredients"),
+    ],
+    "Personal Care": [
+        (("shampoo", "conditioner", "hair"), "Hair Care"),
+        (("vitamin", "supplement"), "Vitamins"),
+        (("toothpaste", "mouthwash", "floss"), "Oral Care"),
+        (("deodorant", "body wash", "soap"), "Shower, Bath & Body"),
+        (("moisturiser", "moisturizer", "sunscreen", "skincare"), "Skincare & Body"),
+    ],
+    "Cleaning & Maintenance": [
+        (("laundry", "detergent", "fabric softener"), "Laundry"),
+        (("dishwasher", "dishwashing", "sponge"), "Kitchen"),
+        (("bleach", "disinfectant", "cleaner", "wipes"), "Cleaning Goods"),
+        (("battery", "batteries", "energizer", "eveready", "duracell"), "Batteries & Power"),
+    ],
+    "Pet": [
+        (("dog", "puppy"), "Dog & Puppy"),
+        (("cat", "kitten"), "Cat & Kitten"),
+        (("bird", "fish food"), "Pet"),
+    ],
+    "Baby": [
+        (("formula", "toddler milk"), "Baby Formula & Toddler Milk"),
+        (("wipe", "nappy", "diaper"), "Wipes & Changing"),
+        (("baby bath", "baby lotion"), "Bath & Skincare"),
+    ],
+    "Drinks": [
+        (("coffee", "tea"), "Tea & Coffee"),
+        (("soft drink", "cola", "lemonade", "soda"), "Soft Drinks"),
+        (("juice", "cordial"), "Cordials, Juices & Iced Teas"),
+        (("water", "sparkling water"), "Water"),
+        (("energy drink", "sports drink"), "Sports & Energy Drinks"),
+    ],
+    "Home & Lifestyle": [
+        (("candle", "decor"), "Home Decor & Furniture"),
+        (("kitchen", "cookware"), "Kitchen"),
+        (("toy", "game"), "Toys & Games"),
+        (("battery", "batteries", "energizer", "eveready", "duracell"), "Batteries & Power"),
+        (("sport", "fitness", "outdoor"), "Sport, Fitness & Outdoor Activities"),
+        (("towel", "bath sheet"), "Bathroom Towels & Accessories"),
+        (("phone", "earphone", "headphone", "charger"), "Phones & Accessories"),
+        (("sheet", "duvet", "pillowcase", "doona", "manchester", "quilt"), "Manchester & Bedding"),
+        (("kettle", "toaster", "air fryer", "appliance"), "Appliances"),
+        (("hardware", "screw", "nail pack", "duct tape"), "Hardware"),
+    ],
+}
+
+
+def _keyword_subcategory(shared_l0: str, name: str) -> Optional[str]:
+    text = (name or "").lower()
+    if not text:
+        return None
+    for needles, label in _KEYWORD_L1.get(shared_l0) or []:
+        if any(n in text for n in needles):
+            return label
+    return None
 
 
 def normalize_brand(value: Optional[str]) -> str:
@@ -277,7 +398,11 @@ def build_coles_subcategory_lookup(
         l0 = (ww.get("ww_l0") or "").strip()
         l1 = (ww.get("ww_l1") or "").strip()
         if l0 and l1:
-            ww_examples[l0].append({"brand": ww.get("brand") or "", "tokens": ww.get("tokens") or set(), "l1": l1})
+            shared = shared_label_for_gold(l0)
+            example = {"brand": ww.get("brand") or "", "tokens": ww.get("tokens") or set(), "l1": l1}
+            ww_examples[l0].append(example)
+            if shared != l0:
+                ww_examples[shared].append(example)
 
     for match in matches:
         coles_id = match.get("coles_id")
@@ -292,6 +417,7 @@ def build_coles_subcategory_lookup(
         coles = by_coles_id.get(coles_id_i)
         if not coles:
             continue
+        shared_l0 = shared_label_for_gold(ww_l0)
         direct[coles_id_i] = {
             "unified_category": ww_l0,
             "unified_subcategory": ww_l1,
@@ -300,16 +426,21 @@ def build_coles_subcategory_lookup(
         }
         for slug in coles.get("categories") or []:
             slug_text = str(slug).strip().lower().replace(" ", "-")
-            if slug_to_l0.get(slug_text) != ww_l0:
+            crosswalk_l0 = slug_to_l0.get(slug_text) or ""
+            if not crosswalk_l0:
                 continue
-            slug_examples[(slug_text, ww_l0)].append(
-                {
-                    "brand": coles.get("brand") or "",
-                    "tokens": coles.get("tokens") or set(),
-                    "l1": ww_l1,
-                    "weight": float(match.get("score") or 1.0),
-                }
-            )
+            if shared_label_for_gold(crosswalk_l0) != shared_l0:
+                continue
+            example = {
+                "brand": coles.get("brand") or "",
+                "tokens": coles.get("tokens") or set(),
+                "l1": ww_l1,
+                "weight": float(match.get("score") or 1.0),
+            }
+            slug_examples[(slug_text, shared_l0)].append(example)
+            # Also key by crosswalk L0 string for callers that look up that way.
+            if crosswalk_l0 != shared_l0:
+                slug_examples[(slug_text, crosswalk_l0)].append(example)
 
     def _infer_from_examples(
         tokens: Set[str],
@@ -358,12 +489,14 @@ def build_coles_subcategory_lookup(
                 break
         if not l0:
             continue
+        shared_l0 = shared_label_for_gold(l0)
         best = None
         for slug in native:
+            pool = slug_examples.get((slug, shared_l0)) or slug_examples.get((slug, l0)) or []
             result = _infer_from_examples(
                 row.get("tokens") or set(),
                 row.get("brand") or "",
-                slug_examples.get((slug, l0), []),
+                pool,
                 min_score=0.34,
                 min_confidence=0.58,
             )
@@ -371,14 +504,23 @@ def build_coles_subcategory_lookup(
                 best = result
                 break
         if best is None:
+            pool = ww_examples.get(shared_l0) or ww_examples.get(l0) or []
             best = _infer_from_examples(
                 row.get("tokens") or set(),
                 row.get("brand") or "",
-                ww_examples.get(l0, []),
-                min_score=0.45,
-                min_confidence=0.62,
+                pool,
+                min_score=0.38,
+                min_confidence=0.55,
             )
         if best is None:
+            kw = _keyword_subcategory(shared_l0, row.get("name") or "")
+            if kw:
+                inferred[coles_id] = {
+                    "unified_category": l0,
+                    "unified_subcategory": kw,
+                    "subcategory_source": "keyword_fallback",
+                    "subcategory_confidence": 0.5,
+                }
             continue
         inferred[coles_id] = {
             "unified_category": l0,
@@ -387,10 +529,12 @@ def build_coles_subcategory_lookup(
             "subcategory_confidence": best[1],
         }
 
+    keyword_n = sum(1 for v in inferred.values() if v.get("subcategory_source") == "keyword_fallback")
     logger.info(
-        "coles subcategory lookup direct=%d inferred=%d total=%d",
+        "coles subcategory lookup direct=%d inferred=%d keyword=%d total=%d",
         len(direct),
-        max(0, len(inferred) - len(direct)),
+        max(0, len(inferred) - len(direct) - keyword_n),
+        keyword_n,
         len(inferred),
     )
     return inferred

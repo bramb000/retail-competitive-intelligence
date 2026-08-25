@@ -23,6 +23,7 @@ from lake.etl.category_crosswalk import (
     write_crosswalk_used,
     write_recommended_csv,
 )
+from lake.etl.category_glossary import shared_label_for_gold
 from lake.etl.sku_matcher import (
     build_coles_subcategory_lookup,
     load_coles_match_rows,
@@ -162,8 +163,19 @@ def transform_coles(
         native = cat_sets.get(rpid) or [item.get("category") or ""]
         unified, unified_sub, matched = unify_coles_category(native, crosswalk)
         subcategory_hint = (subcategory_lookup or {}).get(rpid) or {}
-        if subcategory_hint.get("unified_category") == unified and subcategory_hint.get("unified_subcategory"):
-            unified_sub = subcategory_hint["unified_subcategory"]
+        hint_l0 = (subcategory_hint.get("unified_category") or "").strip()
+        hint_l1 = (subcategory_hint.get("unified_subcategory") or "").strip()
+        # Matcher stores WW-native L0; Coles unified uses glossary/crosswalk L0.
+        # Accept when they share the same store-CI department.
+        if hint_l1 and (
+            not hint_l0 or hint_l0 == unified or shared_label_for_gold(hint_l0) == shared_label_for_gold(unified)
+        ):
+            unified_sub = hint_l1
+            sub_source = subcategory_hint.get("subcategory_source")
+            sub_conf = subcategory_hint.get("subcategory_confidence")
+        else:
+            sub_source = "crosswalk" if unified_sub else None
+            sub_conf = None
         if unified == "Unmapped":
             unmapped += 1
         now = pricing.get("now")
@@ -179,8 +191,8 @@ def transform_coles(
                 "native_categories": native,
                 "unified_category": unified,
                 "unified_subcategory": unified_sub or None,
-                "subcategory_source": subcategory_hint.get("subcategory_source"),
-                "subcategory_confidence": subcategory_hint.get("subcategory_confidence"),
+                "subcategory_source": sub_source,
+                "subcategory_confidence": sub_conf,
                 "crosswalk_matched": matched,
                 "price_now": now,
                 "price_was": was if was else None,
@@ -303,8 +315,12 @@ def transform_woolworths(bronze_dir: Path, out_dir: Path) -> List[Dict[str, Any]
 
 
 def category_venn(coles_rows: List[Dict[str, Any]], ww_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    coles_cats = {r["unified_category"] for r in coles_rows if r.get("unified_category") and r["unified_category"] != "Unmapped"}
-    ww_cats = {r["unified_category"] for r in ww_rows if r.get("unified_category") and r["unified_category"] != "Unmapped"}
+    coles_cats = {
+        r["unified_category"] for r in coles_rows if r.get("unified_category") and r["unified_category"] != "Unmapped"
+    }
+    ww_cats = {
+        r["unified_category"] for r in ww_rows if r.get("unified_category") and r["unified_category"] != "Unmapped"
+    }
     both = sorted(coles_cats & ww_cats)
     coles_only = sorted(coles_cats - ww_cats)
     ww_only = sorted(ww_cats - coles_cats)

@@ -1,0 +1,1829 @@
+{
+  "evaluated_at": "2026-08-24T22:54:41.788387+00:00",
+  "summary": {
+    "native_l1_pairs": 286,
+    "native_both": 112,
+    "native_one_sided": 174,
+    "shared_l1_pairs": 234,
+    "shared_both": 126,
+    "shared_one_sided": 108,
+    "parent_splits": 32,
+    "near_duplicate_groups": 10,
+    "coles_with_sub": 16415,
+    "coles_total": 28558,
+    "coles_coverage_pct": 57.5,
+    "ww_with_sub": 22960,
+    "ww_total": 22997,
+    "ww_coverage_pct": 99.8,
+    "store_ci": {
+      "generated_at": "2026-08-24T22:54:40.645510+00:00",
+      "l1_rows": 234,
+      "both": 126,
+      "coles_only": 11,
+      "ww_only": 97
+    },
+    "critical_failed": 0,
+    "high_failed": 0
+  },
+  "issues": [
+    {
+      "id": "l1_parents_use_shared_label",
+      "severity": "critical",
+      "ok": true,
+      "detail": "0 store-CI L1 parents still use native gold keys (expect 0 after export rollup)",
+      "parents": []
+    },
+    {
+      "id": "l1_parent_splits_in_store_ci",
+      "severity": "critical",
+      "ok": true,
+      "detail": "Store-CI L1 must use shared parents so native parent splits merge (32 gold-level splits remain for ETL)",
+      "gold_parent_splits": 32
+    },
+    {
+      "id": "coles_subcategory_coverage",
+      "severity": "high",
+      "ok": true,
+      "detail": "Coles subcategory coverage 57.5% (target \u226555% after shared-L0 matcher fix)",
+      "coverage": 57.5
+    },
+    {
+      "id": "coarse_crosswalk_l1_overrides",
+      "severity": "high",
+      "ok": true,
+      "detail": "0 crosswalk overrides stamp a fixed L1 (blocks fine WW labels like Poultry)",
+      "overrides": []
+    },
+    {
+      "id": "meat_coles_has_poultry_or_fine_l1",
+      "severity": "high",
+      "ok": true,
+      "detail": "Coles should have Poultry (or other fine WW L1) SKUs under Meat Seafood & Deli after matcher fix",
+      "meat_both_poultry": true,
+      "meat_coles_poultry": true
+    }
+  ],
+  "parent_splits": [
+    {
+      "shared_parent": "Fruit & Vegetables",
+      "subcategory": "Fruit",
+      "by_native_parent": {
+        "Fruit & Veg": {
+          "Coles": 0,
+          "Woolworths": 117
+        },
+        "Fruit & Vegetables": {
+          "Coles": 103,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Fruit & Vegetables",
+      "subcategory": "Salad",
+      "by_native_parent": {
+        "Fruit & Veg": {
+          "Coles": 0,
+          "Woolworths": 12
+        },
+        "Fruit & Vegetables": {
+          "Coles": 68,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Fruit & Vegetables",
+      "subcategory": "Vegetables",
+      "by_native_parent": {
+        "Fruit & Veg": {
+          "Coles": 0,
+          "Woolworths": 256
+        },
+        "Fruit & Vegetables": {
+          "Coles": 143,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Liquor",
+      "subcategory": "Beer",
+      "by_native_parent": {
+        "Beer, Wine & Spirits": {
+          "Coles": 0,
+          "Woolworths": 2
+        },
+        "Liquor": {
+          "Coles": 322,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Liquor",
+      "subcategory": "Spirits",
+      "by_native_parent": {
+        "Beer, Wine & Spirits": {
+          "Coles": 0,
+          "Woolworths": 1
+        },
+        "Liquor": {
+          "Coles": 518,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Biscuits & Crackers",
+      "by_native_parent": {
+        "Meat Seafood & Deli": {
+          "Coles": 7,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 6
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Cheese",
+      "by_native_parent": {
+        "Meat Seafood & Deli": {
+          "Coles": 29,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 14
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Deli Meats",
+      "by_native_parent": {
+        "Deli": {
+          "Coles": 0,
+          "Woolworths": 114
+        },
+        "Meat Seafood & Deli": {
+          "Coles": 100,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 61
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Deli Specialties",
+      "by_native_parent": {
+        "Deli": {
+          "Coles": 0,
+          "Woolworths": 57
+        },
+        "Meat Seafood & Deli": {
+          "Coles": 28,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 11
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Entertaining Meats & Platters",
+      "by_native_parent": {
+        "Deli": {
+          "Coles": 0,
+          "Woolworths": 7
+        },
+        "Meat Seafood & Deli": {
+          "Coles": 3,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Ham, Bacon & Smallgoods",
+      "by_native_parent": {
+        "Deli": {
+          "Coles": 0,
+          "Woolworths": 4
+        },
+        "Meat Seafood & Deli": {
+          "Coles": 48,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 53
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Meat",
+      "by_native_parent": {
+        "Meat Seafood & Deli": {
+          "Coles": 263,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 136
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Poultry",
+      "by_native_parent": {
+        "Meat Seafood & Deli": {
+          "Coles": 163,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 133
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Ready to Cook Meats",
+      "by_native_parent": {
+        "Meat Seafood & Deli": {
+          "Coles": 5,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 26
+        }
+      }
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Seafood",
+      "by_native_parent": {
+        "Meat Seafood & Deli": {
+          "Coles": 124,
+          "Woolworths": 0
+        },
+        "Poultry, Meat & Seafood": {
+          "Coles": 0,
+          "Woolworths": 72
+        }
+      }
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Biscuits & Crackers",
+      "by_native_parent": {
+        "Pantry": {
+          "Coles": 383,
+          "Woolworths": 13
+        },
+        "Snacks & Confectionery": {
+          "Coles": 0,
+          "Woolworths": 257
+        }
+      }
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Chips",
+      "by_native_parent": {
+        "Pantry": {
+          "Coles": 267,
+          "Woolworths": 16
+        },
+        "Snacks & Confectionery": {
+          "Coles": 0,
+          "Woolworths": 129
+        }
+      }
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Confectionery",
+      "by_native_parent": {
+        "Pantry": {
+          "Coles": 782,
+          "Woolworths": 19
+        },
+        "Snacks & Confectionery": {
+          "Coles": 0,
+          "Woolworths": 436
+        }
+      }
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "European, UK & Irish",
+      "by_native_parent": {
+        "Pantry": {
+          "Coles": 10,
+          "Woolworths": 31
+        },
+        "Snacks & Confectionery": {
+          "Coles": 0,
+          "Woolworths": 1
+        }
+      }
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Gum, Mints & Lozenges",
+      "by_native_parent": {
+        "Pantry": {
+          "Coles": 2,
+          "Woolworths": 0
+        },
+        "Snacks & Confectionery": {
+          "Coles": 0,
+          "Woolworths": 1
+        }
+      }
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Snacks",
+      "by_native_parent": {
+        "Pantry": {
+          "Coles": 348,
+          "Woolworths": 279
+        },
+        "Snacks & Confectionery": {
+          "Coles": 0,
+          "Woolworths": 53
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Beauty Tools & Nails",
+      "by_native_parent": {
+        "Beauty": {
+          "Coles": 0,
+          "Woolworths": 4
+        },
+        "Personal Care": {
+          "Coles": 35,
+          "Woolworths": 85
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Confectionery",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 2
+        },
+        "Personal Care": {
+          "Coles": 1,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Cosmetics",
+      "by_native_parent": {
+        "Beauty": {
+          "Coles": 0,
+          "Woolworths": 37
+        },
+        "Personal Care": {
+          "Coles": 165,
+          "Woolworths": 308
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Diet & Sports Nutrition",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 100
+        },
+        "Personal Care": {
+          "Coles": 7,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "First Aid & Medicinal",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 537
+        },
+        "Personal Care": {
+          "Coles": 441,
+          "Woolworths": 5
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Hair Care",
+      "by_native_parent": {
+        "Beauty": {
+          "Coles": 0,
+          "Woolworths": 6
+        },
+        "Personal Care": {
+          "Coles": 852,
+          "Woolworths": 1168
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Health Foods",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 629
+        },
+        "Personal Care": {
+          "Coles": 2,
+          "Woolworths": 0
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Shower, Bath & Body",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 1
+        },
+        "Personal Care": {
+          "Coles": 514,
+          "Woolworths": 607
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Skincare & Body",
+      "by_native_parent": {
+        "Beauty": {
+          "Coles": 0,
+          "Woolworths": 7
+        },
+        "Personal Care": {
+          "Coles": 465,
+          "Woolworths": 627
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Snacks",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 59
+        },
+        "Personal Care": {
+          "Coles": 0,
+          "Woolworths": 2
+        }
+      }
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Vitamins",
+      "by_native_parent": {
+        "Health & Wellness": {
+          "Coles": 0,
+          "Woolworths": 401
+        },
+        "Personal Care": {
+          "Coles": 456,
+          "Woolworths": 47
+        }
+      }
+    }
+  ],
+  "one_sided_shared_top": [
+    {
+      "shared_parent": "Lunch Box",
+      "subcategory": "Snacks",
+      "coles_skus": 0,
+      "ww_skus": 270,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Kitchen",
+      "coles_skus": 0,
+      "ww_skus": 160,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Batteries & Power",
+      "coles_skus": 0,
+      "ww_skus": 158,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Bakery",
+      "subcategory": "Bread",
+      "coles_skus": 139,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Toys & Games",
+      "coles_skus": 0,
+      "ww_skus": 112,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Hair Care",
+      "coles_skus": 0,
+      "ww_skus": 108,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Liquor",
+      "subcategory": "Wine",
+      "coles_skus": 82,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Dining & Entertaining",
+      "coles_skus": 0,
+      "ww_skus": 77,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Clothing & Accessories",
+      "coles_skus": 0,
+      "ww_skus": 71,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Home Decor & Furniture",
+      "coles_skus": 0,
+      "ww_skus": 68,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Beauty Tools & Nails",
+      "coles_skus": 0,
+      "ww_skus": 64,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Baby",
+      "subcategory": "Baby Formula & Toddler Milk",
+      "coles_skus": 0,
+      "ww_skus": 64,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Snacks",
+      "coles_skus": 0,
+      "ww_skus": 61,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Pantry",
+      "coles_skus": 0,
+      "ww_skus": 60,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Hardware",
+      "coles_skus": 0,
+      "ww_skus": 59,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Sports & Fitness",
+      "coles_skus": 0,
+      "ww_skus": 54,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Bakery",
+      "subcategory": "Cakes & Desserts",
+      "coles_skus": 51,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Home Decor & Furniture",
+      "coles_skus": 0,
+      "ww_skus": 45,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Appliances",
+      "coles_skus": 0,
+      "ww_skus": 39,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "International Foods",
+      "subcategory": "Asian",
+      "coles_skus": 30,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Cosmetics",
+      "coles_skus": 0,
+      "ww_skus": 30,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Salad",
+      "coles_skus": 0,
+      "ww_skus": 30,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "International Foods",
+      "subcategory": "Middle Eastern",
+      "coles_skus": 0,
+      "ww_skus": 27,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Skincare & Body",
+      "coles_skus": 0,
+      "ww_skus": 26,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dinner",
+      "subcategory": "Biscuits & Crackers",
+      "coles_skus": 0,
+      "ww_skus": 25,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Manchester & Bedding",
+      "coles_skus": 0,
+      "ww_skus": 24,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Eggs",
+      "coles_skus": 23,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Home & Lifestyle",
+      "subcategory": "Sport, Fitness & Outdoor Activities",
+      "coles_skus": 0,
+      "ww_skus": 23,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Books & Magazines",
+      "coles_skus": 0,
+      "ww_skus": 22,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Butter & Margarine",
+      "coles_skus": 22,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Electronics",
+      "subcategory": "Phones & Accessories",
+      "coles_skus": 0,
+      "ww_skus": 22,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Outdoor Living",
+      "coles_skus": 0,
+      "ww_skus": 21,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Phones & Accessories",
+      "coles_skus": 0,
+      "ww_skus": 19,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Cleaning & Maintenance",
+      "coles_skus": 0,
+      "ww_skus": 19,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Vegetables",
+      "coles_skus": 0,
+      "ww_skus": 17,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Toys & Games",
+      "coles_skus": 0,
+      "ww_skus": 15,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Drinks",
+      "subcategory": "Pantry",
+      "coles_skus": 0,
+      "ww_skus": 15,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Health & Beauty",
+      "coles_skus": 0,
+      "ww_skus": 14,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Baby",
+      "subcategory": "Baby & Toddler Clothing",
+      "coles_skus": 0,
+      "ww_skus": 14,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Greek",
+      "coles_skus": 0,
+      "ww_skus": 13,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Home & Lifestyle",
+      "subcategory": "Bathroom Towels & Accessories",
+      "coles_skus": 0,
+      "ww_skus": 12,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "International Foods",
+      "subcategory": "European, UK & Irish",
+      "coles_skus": 0,
+      "ww_skus": 12,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Vegetables",
+      "coles_skus": 0,
+      "ww_skus": 11,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Electronics",
+      "subcategory": "Headphones",
+      "coles_skus": 0,
+      "ww_skus": 10,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Home & Lifestyle",
+      "subcategory": "Kitchenware & Storage",
+      "coles_skus": 0,
+      "ww_skus": 10,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Electronics",
+      "coles_skus": 0,
+      "ww_skus": 10,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "subcategory": "Cleaning & Maintenance",
+      "coles_skus": 0,
+      "ww_skus": 10,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Baby",
+      "subcategory": "Health & Safety",
+      "coles_skus": 0,
+      "ww_skus": 10,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dinner",
+      "subcategory": "Air Fryer Ready Meals",
+      "coles_skus": 0,
+      "ww_skus": 9,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Home & Lifestyle",
+      "subcategory": "Manchester & Bedding",
+      "coles_skus": 0,
+      "ww_skus": 9,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Appliances",
+      "coles_skus": 0,
+      "ww_skus": 9,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Bakery",
+      "subcategory": "Wraps & Flatbreads",
+      "coles_skus": 9,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Chilled Drinks",
+      "coles_skus": 0,
+      "ww_skus": 9,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Drinks",
+      "subcategory": "Healthier Lunch Box",
+      "coles_skus": 0,
+      "ww_skus": 9,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Frozen",
+      "subcategory": "Frozen Fruit & Vegetables",
+      "coles_skus": 8,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Frozen",
+      "subcategory": "Pizza",
+      "coles_skus": 8,
+      "ww_skus": 0,
+      "side": "coles_only"
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Dips & Pate",
+      "coles_skus": 0,
+      "ww_skus": 8,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Lunch Box",
+      "subcategory": "Healthier Lunch Box",
+      "coles_skus": 0,
+      "ww_skus": 8,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Dinner",
+      "subcategory": "Ready to Cook Meats",
+      "coles_skus": 0,
+      "ww_skus": 7,
+      "side": "ww_only"
+    },
+    {
+      "shared_parent": "Baby",
+      "subcategory": "Toys & Playtime",
+      "coles_skus": 0,
+      "ww_skus": 6,
+      "side": "ww_only"
+    }
+  ],
+  "both_shared_top": [
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Hair Care",
+      "coles_skus": 852,
+      "ww_skus": 1174
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Confectionery",
+      "coles_skus": 782,
+      "ww_skus": 455
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Asian",
+      "coles_skus": 414,
+      "ww_skus": 748
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Cleaning Goods",
+      "coles_skus": 460,
+      "ww_skus": 673
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Shower, Bath & Body",
+      "coles_skus": 514,
+      "ww_skus": 608
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Skincare & Body",
+      "coles_skus": 465,
+      "ww_skus": 634
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "First Aid & Medicinal",
+      "coles_skus": 441,
+      "ww_skus": 542
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Vitamins",
+      "coles_skus": 456,
+      "ww_skus": 451
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Breakfast & Spreads",
+      "coles_skus": 397,
+      "ww_skus": 472
+    },
+    {
+      "shared_parent": "Pet",
+      "subcategory": "Dog & Puppy",
+      "coles_skus": 452,
+      "ww_skus": 400
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Canned Food & Instant Meals",
+      "coles_skus": 381,
+      "ww_skus": 458
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Cooking Sauces & Recipe Bases",
+      "coles_skus": 312,
+      "ww_skus": 510
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Condiments",
+      "coles_skus": 353,
+      "ww_skus": 420
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Baking",
+      "coles_skus": 314,
+      "ww_skus": 449
+    },
+    {
+      "shared_parent": "Pet",
+      "subcategory": "Cat & Kitten",
+      "coles_skus": 317,
+      "ww_skus": 379
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Snacks",
+      "coles_skus": 348,
+      "ww_skus": 332
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Biscuits & Crackers",
+      "coles_skus": 383,
+      "ww_skus": 270
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Oral Care",
+      "coles_skus": 295,
+      "ww_skus": 356
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Laundry",
+      "coles_skus": 262,
+      "ww_skus": 385
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Men's Care",
+      "coles_skus": 292,
+      "ww_skus": 353
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Health Foods",
+      "coles_skus": 2,
+      "ww_skus": 629
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Cheese",
+      "coles_skus": 257,
+      "ww_skus": 331
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Herbs & Spices",
+      "coles_skus": 247,
+      "ww_skus": 339
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Snacks",
+      "coles_skus": 266,
+      "ww_skus": 300
+    },
+    {
+      "shared_parent": "Drinks",
+      "subcategory": "Tea & Coffee",
+      "coles_skus": 46,
+      "ww_skus": 502
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "subcategory": "Kitchen",
+      "coles_skus": 189,
+      "ww_skus": 334
+    },
+    {
+      "shared_parent": "Liquor",
+      "subcategory": "Spirits",
+      "coles_skus": 518,
+      "ww_skus": 1
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Cosmetics",
+      "coles_skus": 165,
+      "ww_skus": 345
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Pasta, Rice & Grains",
+      "coles_skus": 280,
+      "ww_skus": 227
+    },
+    {
+      "shared_parent": "Drinks",
+      "subcategory": "Soft Drinks",
+      "coles_skus": 243,
+      "ww_skus": 235
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "subcategory": "Milk",
+      "coles_skus": 280,
+      "ww_skus": 195
+    },
+    {
+      "shared_parent": "Frozen",
+      "subcategory": "Ice Cream",
+      "coles_skus": 211,
+      "ww_skus": 249
+    },
+    {
+      "shared_parent": "Personal Care",
+      "subcategory": "Period Care",
+      "coles_skus": 204,
+      "ww_skus": 216
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Chips",
+      "coles_skus": 267,
+      "ww_skus": 145
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "subcategory": "Meat",
+      "coles_skus": 264,
+      "ww_skus": 140
+    },
+    {
+      "shared_parent": "Fruit & Vegetables",
+      "subcategory": "Vegetables",
+      "coles_skus": 143,
+      "ww_skus": 256
+    },
+    {
+      "shared_parent": "Drinks",
+      "subcategory": "Cordials, Juices & Iced Teas",
+      "coles_skus": 175,
+      "ww_skus": 208
+    },
+    {
+      "shared_parent": "Pantry",
+      "subcategory": "Sandwich Ingredients",
+      "coles_skus": 159,
+      "ww_skus": 195
+    },
+    {
+      "shared_parent": "Frozen",
+      "subcategory": "Frozen Meals",
+      "coles_skus": 113,
+      "ww_skus": 221
+    },
+    {
+      "shared_parent": "Liquor",
+      "subcategory": "Beer",
+      "coles_skus": 322,
+      "ww_skus": 2
+    }
+  ],
+  "near_dupes": [
+    {
+      "shared_parent": "Bakery",
+      "kind": "containment",
+      "labels": [
+        "Bread",
+        "Packaged Bread & Bakery"
+      ]
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "kind": "containment",
+      "labels": [
+        "Accessories",
+        "Clothing & Accessories"
+      ]
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "kind": "containment",
+      "labels": [
+        "Butter & Margarine",
+        "Eggs, Butter & Margarine"
+      ]
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "kind": "containment",
+      "labels": [
+        "Eggs",
+        "Eggs, Butter & Margarine"
+      ]
+    },
+    {
+      "shared_parent": "Drinks",
+      "kind": "containment",
+      "labels": [
+        "Chilled Drinks",
+        "Drinks"
+      ]
+    },
+    {
+      "shared_parent": "Drinks",
+      "kind": "containment",
+      "labels": [
+        "Drinks",
+        "Low & Non Alcoholic Drinks"
+      ]
+    },
+    {
+      "shared_parent": "Drinks",
+      "kind": "containment",
+      "labels": [
+        "Drinks",
+        "Soft Drinks"
+      ]
+    },
+    {
+      "shared_parent": "Drinks",
+      "kind": "containment",
+      "labels": [
+        "Drinks",
+        "Sports & Energy Drinks"
+      ]
+    },
+    {
+      "shared_parent": "Frozen",
+      "kind": "containment",
+      "labels": [
+        "Frozen Fruit",
+        "Frozen Fruit & Vegetables"
+      ]
+    },
+    {
+      "shared_parent": "Frozen",
+      "kind": "containment",
+      "labels": [
+        "Frozen Fruit & Vegetables",
+        "Frozen Vegetables"
+      ]
+    }
+  ],
+  "per_parent": [
+    {
+      "shared_parent": "Baby",
+      "l1_rows": 12,
+      "both": 5,
+      "coles_only": 0,
+      "ww_only": 7,
+      "coles_skus": 27,
+      "ww_skus": 544,
+      "null_coles": 13,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Bakery",
+      "l1_rows": 8,
+      "both": 4,
+      "coles_only": 3,
+      "ww_only": 1,
+      "coles_skus": 368,
+      "ww_skus": 271,
+      "null_coles": 340,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Cleaning & Maintenance",
+      "l1_rows": 29,
+      "both": 10,
+      "coles_only": 0,
+      "ww_only": 19,
+      "coles_skus": 1208,
+      "ww_skus": 2478,
+      "null_coles": 441,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Dairy Eggs & Fridge",
+      "l1_rows": 26,
+      "both": 18,
+      "coles_only": 2,
+      "ww_only": 6,
+      "coles_skus": 1479,
+      "ww_skus": 1694,
+      "null_coles": 796,
+      "null_ww": 16,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Dinner",
+      "l1_rows": 5,
+      "both": 0,
+      "coles_only": 0,
+      "ww_only": 5,
+      "coles_skus": 0,
+      "ww_skus": 48,
+      "null_coles": 0,
+      "null_ww": 1,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Drinks",
+      "l1_rows": 13,
+      "both": 8,
+      "coles_only": 1,
+      "ww_only": 4,
+      "coles_skus": 706,
+      "ww_skus": 1487,
+      "null_coles": 64,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Electronics",
+      "l1_rows": 4,
+      "both": 0,
+      "coles_only": 0,
+      "ww_only": 4,
+      "coles_skus": 0,
+      "ww_skus": 40,
+      "null_coles": 0,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Everyday Market",
+      "l1_rows": 21,
+      "both": 0,
+      "coles_only": 0,
+      "ww_only": 21,
+      "coles_skus": 0,
+      "ww_skus": 962,
+      "null_coles": 0,
+      "null_ww": 19,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Frozen",
+      "l1_rows": 16,
+      "both": 13,
+      "coles_only": 2,
+      "ww_only": 1,
+      "coles_skus": 670,
+      "ww_skus": 1096,
+      "null_coles": 676,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Fruit & Vegetables",
+      "l1_rows": 3,
+      "both": 3,
+      "coles_only": 0,
+      "ww_only": 0,
+      "coles_skus": 314,
+      "ww_skus": 385,
+      "null_coles": 478,
+      "null_ww": 0,
+      "parent_splits": 3
+    },
+    {
+      "shared_parent": "Home & Lifestyle",
+      "l1_rows": 14,
+      "both": 7,
+      "coles_only": 1,
+      "ww_only": 6,
+      "coles_skus": 263,
+      "ww_skus": 343,
+      "null_coles": 1430,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "International Foods",
+      "l1_rows": 5,
+      "both": 0,
+      "coles_only": 1,
+      "ww_only": 4,
+      "coles_skus": 30,
+      "ww_skus": 41,
+      "null_coles": 491,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Liquor",
+      "l1_rows": 3,
+      "both": 2,
+      "coles_only": 1,
+      "ww_only": 0,
+      "coles_skus": 922,
+      "ww_skus": 3,
+      "null_coles": 2227,
+      "null_ww": 0,
+      "parent_splits": 2
+    },
+    {
+      "shared_parent": "Lunch Box",
+      "l1_rows": 6,
+      "both": 0,
+      "coles_only": 0,
+      "ww_only": 6,
+      "coles_skus": 0,
+      "ww_skus": 288,
+      "null_coles": 0,
+      "null_ww": 0,
+      "parent_splits": 0
+    },
+    {
+      "shared_parent": "Meat Seafood & Deli",
+      "l1_rows": 10,
+      "both": 10,
+      "coles_only": 0,
+      "ww_only": 0,
+      "coles_skus": 775,
+      "ww_skus": 710,
+      "null_coles": 654,
+      "null_ww": 0,
+      "parent_splits": 10
+    },
+    {
+      "shared_parent": "Pantry",
+      "l1_rows": 38,
+      "both": 28,
+      "coles_only": 0,
+      "ww_only": 10,
+      "coles_skus": 5018,
+      "ww_skus": 5813,
+      "null_coles": 3431,
+      "null_ww": 0,
+      "parent_splits": 6
+    },
+    {
+      "shared_parent": "Personal Care",
+      "l1_rows": 17,
+      "both": 14,
+      "coles_only": 0,
+      "ww_only": 3,
+      "coles_skus": 3817,
+      "ww_skus": 5754,
+      "null_coles": 1032,
+      "null_ww": 0,
+      "parent_splits": 11
+    },
+    {
+      "shared_parent": "Pet",
+      "l1_rows": 4,
+      "both": 4,
+      "coles_only": 0,
+      "ww_only": 0,
+      "coles_skus": 818,
+      "ww_skus": 1003,
+      "null_coles": 70,
+      "null_ww": 0,
+      "parent_splits": 0
+    }
+  ],
+  "null_sub_by_parent": {
+    "Pantry": {
+      "Coles": 3431,
+      "Woolworths": 0
+    },
+    "Liquor": {
+      "Coles": 2227,
+      "Woolworths": 0
+    },
+    "Home & Lifestyle": {
+      "Coles": 1430,
+      "Woolworths": 0
+    },
+    "Personal Care": {
+      "Coles": 1032,
+      "Woolworths": 0
+    },
+    "Dairy Eggs & Fridge": {
+      "Coles": 796,
+      "Woolworths": 16
+    },
+    "Frozen": {
+      "Coles": 676,
+      "Woolworths": 0
+    },
+    "Meat Seafood & Deli": {
+      "Coles": 654,
+      "Woolworths": 0
+    },
+    "International Foods": {
+      "Coles": 491,
+      "Woolworths": 0
+    },
+    "Fruit & Vegetables": {
+      "Coles": 478,
+      "Woolworths": 0
+    },
+    "Cleaning & Maintenance": {
+      "Coles": 441,
+      "Woolworths": 0
+    },
+    "Bakery": {
+      "Coles": 340,
+      "Woolworths": 0
+    },
+    "Pet": {
+      "Coles": 70,
+      "Woolworths": 0
+    },
+    "Drinks": {
+      "Coles": 64,
+      "Woolworths": 0
+    },
+    "Everyday Market": {
+      "Coles": 0,
+      "Woolworths": 19
+    },
+    "Baby": {
+      "Coles": 13,
+      "Woolworths": 0
+    },
+    "Women's Fragrances & Perfumes": {
+      "Coles": 0,
+      "Woolworths": 1
+    },
+    "Dinner": {
+      "Coles": 0,
+      "Woolworths": 1
+    },
+    "Electronics": {
+      "Coles": 0,
+      "Woolworths": 0
+    },
+    "Lunch Box": {
+      "Coles": 0,
+      "Woolworths": 0
+    }
+  },
+  "store_ci_parents": [
+    {
+      "parent": "Pantry",
+      "rows": 38,
+      "shared_label": "Pantry",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Cleaning & Maintenance",
+      "rows": 29,
+      "shared_label": "Cleaning & Maintenance",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Dairy Eggs & Fridge",
+      "rows": 26,
+      "shared_label": "Dairy Eggs & Fridge",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Everyday Market",
+      "rows": 21,
+      "shared_label": "Everyday Market",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Personal Care",
+      "rows": 17,
+      "shared_label": "Personal Care",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Frozen",
+      "rows": 16,
+      "shared_label": "Frozen",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Home & Lifestyle",
+      "rows": 14,
+      "shared_label": "Home & Lifestyle",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Drinks",
+      "rows": 13,
+      "shared_label": "Drinks",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Baby",
+      "rows": 12,
+      "shared_label": "Baby",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Meat Seafood & Deli",
+      "rows": 10,
+      "shared_label": "Meat Seafood & Deli",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Bakery",
+      "rows": 8,
+      "shared_label": "Bakery",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Lunch Box",
+      "rows": 6,
+      "shared_label": "Lunch Box",
+      "needs_rollup": false
+    },
+    {
+      "parent": "International Foods",
+      "rows": 5,
+      "shared_label": "International Foods",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Dinner",
+      "rows": 5,
+      "shared_label": "Dinner",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Pet",
+      "rows": 4,
+      "shared_label": "Pet",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Electronics",
+      "rows": 4,
+      "shared_label": "Electronics",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Liquor",
+      "rows": 3,
+      "shared_label": "Liquor",
+      "needs_rollup": false
+    },
+    {
+      "parent": "Fruit & Vegetables",
+      "rows": 3,
+      "shared_label": "Fruit & Vegetables",
+      "needs_rollup": false
+    }
+  ],
+  "coles_sources": {
+    "silver_stamp": "2026-08-24T225308",
+    "by_source": {
+      "inferred_match": 9462,
+      "direct_match": 3897,
+      "null": 12143,
+      "keyword_fallback": 3056
+    },
+    "by_shared_parent": {
+      "Pantry": {
+        "has": 5018,
+        "null": 3431,
+        "coverage_pct": 59.4,
+        "sources": {
+          "direct_match": 1563,
+          "inferred_match": 2843,
+          "keyword_fallback": 612
+        }
+      },
+      "Personal Care": {
+        "has": 3817,
+        "null": 1032,
+        "coverage_pct": 78.7,
+        "sources": {
+          "inferred_match": 2552,
+          "direct_match": 1055,
+          "keyword_fallback": 210
+        }
+      },
+      "Liquor": {
+        "has": 922,
+        "null": 2227,
+        "coverage_pct": 29.3,
+        "sources": {
+          "keyword_fallback": 914,
+          "inferred_match": 7,
+          "direct_match": 1
+        }
+      },
+      "Dairy Eggs & Fridge": {
+        "has": 1479,
+        "null": 796,
+        "coverage_pct": 65.0,
+        "sources": {
+          "inferred_match": 963,
+          "direct_match": 341,
+          "keyword_fallback": 175
+        }
+      },
+      "Home & Lifestyle": {
+        "has": 263,
+        "null": 1430,
+        "coverage_pct": 15.5,
+        "sources": {
+          "inferred_match": 185,
+          "direct_match": 27,
+          "keyword_fallback": 51
+        }
+      },
+      "Cleaning & Maintenance": {
+        "has": 1208,
+        "null": 441,
+        "coverage_pct": 73.3,
+        "sources": {
+          "inferred_match": 847,
+          "direct_match": 283,
+          "keyword_fallback": 78
+        }
+      },
+      "Meat Seafood & Deli": {
+        "has": 775,
+        "null": 654,
+        "coverage_pct": 54.2,
+        "sources": {
+          "direct_match": 55,
+          "keyword_fallback": 349,
+          "inferred_match": 371
+        }
+      },
+      "Frozen": {
+        "has": 670,
+        "null": 676,
+        "coverage_pct": 49.8,
+        "sources": {
+          "direct_match": 194,
+          "inferred_match": 434,
+          "keyword_fallback": 42
+        }
+      },
+      "Pet": {
+        "has": 818,
+        "null": 70,
+        "coverage_pct": 92.1,
+        "sources": {
+          "inferred_match": 532,
+          "direct_match": 154,
+          "keyword_fallback": 132
+        }
+      },
+      "Fruit & Vegetables": {
+        "has": 314,
+        "null": 478,
+        "coverage_pct": 39.6,
+        "sources": {
+          "keyword_fallback": 210,
+          "inferred_match": 103,
+          "direct_match": 1
+        }
+      },
+      "Drinks": {
+        "has": 706,
+        "null": 64,
+        "coverage_pct": 91.7,
+        "sources": {
+          "direct_match": 188,
+          "inferred_match": 466,
+          "keyword_fallback": 52
+        }
+      },
+      "Bakery": {
+        "has": 368,
+        "null": 340,
+        "coverage_pct": 52.0,
+        "sources": {
+          "keyword_fallback": 199,
+          "inferred_match": 134,
+          "direct_match": 35
+        }
+      },
+      "International Foods": {
+        "has": 30,
+        "null": 491,
+        "coverage_pct": 5.8,
+        "sources": {
+          "keyword_fallback": 30
+        }
+      },
+      "Baby": {
+        "has": 27,
+        "null": 13,
+        "coverage_pct": 67.5,
+        "sources": {
+          "inferred_match": 25,
+          "keyword_fallback": 2
+        }
+      }
+    }
+  },
+  "coarse_crosswalk_l1_overrides": []
+}

@@ -169,7 +169,9 @@ def infer_pack_from_unit(price: Optional[float], unit_rate: Optional[UnitRate]) 
     return None
 
 
-def resolve_pack(name: Optional[str], price: Optional[float], unit_price: Optional[str]) -> Tuple[Optional[PackSize], Optional[UnitRate]]:
+def resolve_pack(
+    name: Optional[str], price: Optional[float], unit_price: Optional[str]
+) -> Tuple[Optional[PackSize], Optional[UnitRate]]:
     unit_rate = parse_unit_rate(unit_price)
     pack = parse_pack_size(name) or infer_pack_from_unit(price, unit_rate)
     return pack, unit_rate

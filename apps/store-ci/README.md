@@ -2,9 +2,9 @@
 
 **Grain:** category × location (Ashfield is the only live location today).
 
-Full-store Coles ↔ Woolworths competitive intelligence in shared commercial language — aisle
-space, dominance, price, everyday staples, and floor layout. Empty categories show as *data still
-filling in* while coverage completes.
+Full-store Coles ↔ Woolworths competitive intelligence in shared commercial
+language — aisle space, dominance, price, everyday staples, and floor layout.
+Empty categories show as *data still filling in* while coverage completes.
 
 ## Run
 
@@ -12,7 +12,7 @@ filling in* while coverage completes.
 ./run_store_ci
 ```
 
-→ http://localhost:5174 · exports `apps/store-ci/public/data/store_ci.json`
+→ <http://localhost:5174> · exports `apps/store-ci/public/data/store_ci.json`
 
 After scrapers / ETL:
 
@@ -31,8 +31,10 @@ After scrapers / ETL:
 - Category drill-in for any department at this location
 - **Methods** — plain-language guide to how numbers are built
 
-Deep links use hash routes, e.g. `#/dominance`, `#/overview/dept/<id>`, `#/methods/grain`.
+Deep links use hash routes, e.g. `#/dominance`, `#/overview/dept/<id>`,
+`#/methods/grain`.
 
 ## Deprecated
 
-`apps/ashfield-pc` (Personal Care–only) is superseded. `./run_pc_dashboard` redirects here.
+`apps/ashfield-pc` (Personal Care–only) is superseded.
+`./run_pc_dashboard` redirects here.
