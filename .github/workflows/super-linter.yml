@@ -63,4 +63,4 @@ jobs:
           # Local run artifacts, reverse-engineering tooling, and generated QA
           # reports — never lint-worthy source (data/ is committed scraped data,
           # auth/ and .tools/ hold captured-credential/APK tooling).
-          FILTER_REGEX_EXCLUDE: '(^|/)(data|auth|\\.tools|lake/eval|lake/QA_)/.*'
+          FILTER_REGEX_EXCLUDE: '(^|/)(data|auth|\\.tools|lake/eval)/.*|(^|/)lake/QA_'
