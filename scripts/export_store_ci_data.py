@@ -867,7 +867,7 @@ def export() -> Path:
         "meta": {
             "product": "Macro store competitive intelligence",
             "grain": "category × location",
-            "default_grain": "category",
+            "default_grain": "subcategory",
             "assumes_full_store": True,
             "location_id": LOCATION["id"],
             "location_name": LOCATION["name"],
@@ -1149,7 +1149,7 @@ def _empty_payload(reason: str) -> Dict[str, Any]:
         "meta": {
             "product": "Macro store competitive intelligence",
             "grain": "category × location",
-            "default_grain": "category",
+            "default_grain": "subcategory",
             "assumes_full_store": True,
             "location_id": LOCATION["id"],
             "location_name": LOCATION["name"],

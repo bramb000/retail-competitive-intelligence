@@ -59,7 +59,7 @@ export default function App() {
   const [deptId, setDeptId] = useState<string | null>(null);
   const [deptMatchBy, setDeptMatchBy] = useState<"id" | "shared_label">("id");
   const [locationId, setLocationId] = useState<string>("ashfield");
-  const [grain, setGrain] = useState<Grain>("category");
+  const [grain, setGrain] = useState<Grain>("subcategory");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [hashReady, setHashReady] = useState(false);
 
