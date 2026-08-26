@@ -54,7 +54,6 @@ PRICE_HOT_PCT = 15.0
 DEPT_FIXTURE_SHARE_MAX = 0.50
 
 
-
 def _empty_dept(cat_id: str, g: Dict[str, str], *, taxonomy: str) -> Dict[str, Any]:
     return {
         "id": cat_id,
@@ -348,7 +347,23 @@ def export() -> Path:
         n = int((frame["location_class"] == location_class).sum())
         return n / len(frame)
 
-    def make_dept(*, cat_id, parent, shared, coles_label, ww_label, blurb, taxonomy, cf, wf, cs, ws, gold_keys, all_cf=None, all_wf=None):
+    def make_dept(
+        *,
+        cat_id,
+        parent,
+        shared,
+        coles_label,
+        ww_label,
+        blurb,
+        taxonomy,
+        cf,
+        wf,
+        cs,
+        ws,
+        gold_keys,
+        all_cf=None,
+        all_wf=None,
+    ):
         coles_promo = float(cf["is_promo"].fillna(False).mean() * 100) if len(cf) else None
         ww_promo = float(wf["is_promo"].fillna(False).mean() * 100) if len(wf) else None
         has_data = len(cf) + len(wf) > 0
@@ -712,10 +727,7 @@ def export() -> Path:
         "ww_only": sum(1 for k in known_value if k.get("cheaper") == "ww_only"),
     }
 
-    bay_ids = {
-        (str(r["retailer"]), int(r["retailer_product_id"]))
-        for _, r in facts.iterrows()
-    }
+    bay_ids = {(str(r["retailer"]), int(r["retailer_product_id"])) for _, r in facts.iterrows()}
 
     match_rows = []
     for _, m in matches.iterrows():
@@ -725,8 +737,7 @@ def export() -> Path:
             continue
         ww_l0 = _clean(m["ww_l0"])
         if ww_l0 and (
-            str(ww_l0) in hidden_gold_keys
-            or shared_label_for_gold(str(ww_l0), gloss) in hidden_parent_labels
+            str(ww_l0) in hidden_gold_keys or shared_label_for_gold(str(ww_l0), gloss) in hidden_parent_labels
         ):
             continue
         ww_l1 = _clean(m["ww_l1"])
