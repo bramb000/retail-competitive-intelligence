@@ -259,12 +259,14 @@ def export() -> Path:
         return OUT
 
     conn = duckdb.connect(str(GOLD_DB), read_only=True)
-    facts_all = conn.execute("""
+    facts_all = conn.execute(
+        """
         SELECT retailer, retailer_product_id, name, clean_brand, unified_category,
                unified_subcategory, price_now, price_was, unit_price, is_promo, bay_key,
                indoor_x, indoor_y, location_class
         FROM gold.sku_facts
-        """).fetchdf()
+        """
+    ).fetchdf()
     space_l0 = conn.execute("SELECT * FROM gold.category_space").fetchdf()
     space_l1 = conn.execute("SELECT * FROM gold.subcategory_space").fetchdf()
     pricing_l0 = conn.execute("SELECT * FROM gold.category_pricing").fetchdf()

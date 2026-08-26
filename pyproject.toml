@@ -4,7 +4,7 @@ line-length = 120
 [tool.isort]
 profile = "black"
 line_length = 120
-known_first_party = ["hybrid_scraper"]
+known_first_party = ["hybrid_scraper", "lake"]
 
 [tool.mypy]
 ignore_missing_imports = true
