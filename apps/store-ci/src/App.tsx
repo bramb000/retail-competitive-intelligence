@@ -52,6 +52,7 @@ function applyGrain(data: StoreCiData, grain: Grain): StoreCiData {
 export default function App() {
   const [data, setData] = useState<StoreCiData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [skusLoading, setSkusLoading] = useState(false);
   const [view, setView] = useState<AppView>("scoreboard");
   const [board, setBoard] = useState<BoardTab>("departments");
   const [methodsSection, setMethodsSection] = useState<string | undefined>();
@@ -63,15 +64,36 @@ export default function App() {
   const [hashReady, setHashReady] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/store_ci.json`)
+    const base = import.meta.env.BASE_URL;
+    fetch(`${base}data/store_ci.json`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`Failed to load data (${res.status})`);
         return res.json() as Promise<StoreCiData>;
       })
       .then((payload) => {
-        setData(payload);
+        setData({ ...payload, skus: payload.skus ?? [] });
         setLocationId(payload.meta.location_id || payload.location?.id || "ashfield");
         setGrain(payload.meta.default_grain === "subcategory" ? "subcategory" : "category");
+
+        const skusPath = payload.meta.skus_url || "data/store_ci_skus.json";
+        const skusUrl = skusPath.startsWith("http")
+          ? skusPath
+          : `${base}${skusPath.replace(/^\//, "")}`;
+        setSkusLoading(true);
+        return fetch(skusUrl)
+          .then(async (res) => {
+            if (!res.ok) throw new Error(`Failed to load products (${res.status})`);
+            return res.json() as Promise<{ skus: StoreCiData["skus"] } | StoreCiData["skus"]>;
+          })
+          .then((body) => {
+            const skus = Array.isArray(body) ? body : body.skus ?? [];
+            setData((prev) => (prev ? { ...prev, skus } : prev));
+          })
+          .catch((err: Error) => {
+            // Boards can still render; product views show empty until reload.
+            console.error(err);
+          })
+          .finally(() => setSkusLoading(false));
       })
       .catch((err: Error) => setError(err.message));
   }, []);
@@ -230,6 +252,11 @@ export default function App() {
       }
       toolbar={toolbar}
     >
+      {skusLoading && (board === "macrospace" || dept) ? (
+        <div className="loading" style={{ padding: "0.75rem 0" }}>
+          Loading product catalogue…
+        </div>
+      ) : null}
       {view === "methods" ? (
         <MethodsWiki onBack={() => navigateBoard(board)} />
       ) : dept ? (

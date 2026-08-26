@@ -31,6 +31,7 @@ from lake.etl.known_value_items import build_kvi_scoreboard  # noqa: E402
 GOLD_DB = REPO / "lake" / "gold" / "ashfield_compare.duckdb"
 COLES_CATALOGUE = REPO / "data" / "coles_catalogue_categories.csv.csv"
 OUT = REPO / "apps" / "store-ci" / "public" / "data" / "store_ci.json"
+OUT_SKUS = REPO / "apps" / "store-ci" / "public" / "data" / "store_ci_skus.json"
 
 # Active location cell — product grain is category × location.
 LOCATION = {
@@ -101,6 +102,18 @@ def _clean(v: Any) -> Any:
         except Exception:
             pass
     return v
+
+
+def _omit_none(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Drop null fields so the browser JSON stays small enough to parse quickly."""
+    return {k: v for k, v in row.items() if v is not None}
+
+
+def _coord(v: Any) -> Optional[float]:
+    x = _clean(v)
+    if x is None:
+        return None
+    return round(float(x), 1)
 
 
 def _median(vals: Sequence[Optional[float]]) -> Optional[float]:
@@ -671,7 +684,6 @@ def export() -> Path:
             "id": int(r["retailer_product_id"]),
             "name": _clean(r["name"]),
             "brand": _clean(r["clean_brand"]),
-            "location_id": LOCATION["id"],
             "category": l0_id,
             "subcategory_id": l1_id,
             "gold_category": str(cat) if cat else None,
@@ -683,12 +695,10 @@ def export() -> Path:
             "coles_mapped_subcategory": None,
             "ww_mapped_category": None,
             "price_now": _clean(r["price_now"]),
-            "price_was": _clean(r["price_was"]),
-            "unit_price": _clean(r["unit_price"]),
             "is_promo": bool(r["is_promo"]) if _clean(r["is_promo"]) is not None else False,
             "bay_key": _clean(r["bay_key"]),
-            "indoor_x": _clean(r["indoor_x"]),
-            "indoor_y": _clean(r["indoor_y"]),
+            "indoor_x": _coord(r["indoor_x"]),
+            "indoor_y": _coord(r["indoor_y"]),
             "location_class": _clean(r["location_class"]),
         }
         if row["retailer"] == "Coles":
@@ -710,9 +720,17 @@ def export() -> Path:
             # Shared L1 is the finest Coles↔WW mapping we have when Coles catalogue has no native sub.
             row["coles_mapped_subcategory"] = shared_sub or _clean(sub)
         if row["price_now"] is not None:
-            kvi_sku_pool.append(row)
+            # KVI needs unit/was pricing; keep those only on the scoreboard pool.
+            kvi_sku_pool.append(
+                {
+                    **row,
+                    "price_was": _clean(r["price_was"]),
+                    "unit_price": _clean(r["unit_price"]),
+                    "location_id": LOCATION["id"],
+                }
+            )
         if l0_id:
-            skus.append(row)
+            skus.append(_omit_none(row))
 
     known_value = build_kvi_scoreboard(kvi_sku_pool)
     for k in known_value:
@@ -813,39 +831,36 @@ def export() -> Path:
         "known_value_summary": kvi_summary,
     }
 
+    # Keep location as a light meta stub only. Embedding skus/matches here used to
+    # duplicate ~25MB and freeze the GitHub Pages SPA on JSON.parse.
+    space_rows = [
+        {
+            "location_id": LOCATION["id"],
+            "retailer": _clean(r["retailer"]),
+            "category": l0_canon.get(str(_clean(r["unified_category"])), _clean(r["unified_category"])),
+            "gold_category": _clean(r["unified_category"]),
+            "bay_count": float(r["bay_count"]) if _clean(r["bay_count"]) is not None else 0.0,
+            "store_bay_count": int(r["store_bay_count"]) if _clean(r["store_bay_count"]) is not None else 0,
+            "pct_store_bays": float(r["pct_store_bays"]) if _clean(r["pct_store_bays"]) is not None else 0.0,
+            "placed_skus": int(r["placed_skus"]) if _clean(r["placed_skus"]) is not None else 0,
+        }
+        for _, r in space_l0.iterrows()
+    ]
+    pricing_rows = [
+        {
+            "location_id": LOCATION["id"],
+            "retailer": _clean(r["retailer"]),
+            "category": l0_canon.get(str(_clean(r["unified_category"])), _clean(r["unified_category"])),
+            "gold_category": _clean(r["unified_category"]),
+            "sku_count": int(r["sku_count"]) if _clean(r["sku_count"]) is not None else 0,
+            "median_price": _clean(r["median_price"]),
+            "pct_on_promo": _clean(r["pct_on_promo"]),
+        }
+        for _, r in pricing_l0.iterrows()
+    ]
     location_payload = {
         **LOCATION,
         "store_totals": store_totals,
-        "departments": departments,
-        "scoreboards": scoreboards,
-        "matches": match_rows,
-        "skus": skus,
-        "space": [
-            {
-                "location_id": LOCATION["id"],
-                "retailer": _clean(r["retailer"]),
-                "category": l0_canon.get(str(_clean(r["unified_category"])), _clean(r["unified_category"])),
-                "gold_category": _clean(r["unified_category"]),
-                "bay_count": float(r["bay_count"]) if _clean(r["bay_count"]) is not None else 0.0,
-                "store_bay_count": int(r["store_bay_count"]) if _clean(r["store_bay_count"]) is not None else 0,
-                "pct_store_bays": float(r["pct_store_bays"]) if _clean(r["pct_store_bays"]) is not None else 0.0,
-                "placed_skus": int(r["placed_skus"]) if _clean(r["placed_skus"]) is not None else 0,
-            }
-            for _, r in space_l0.iterrows()
-        ],
-        "pricing": [
-            {
-                "location_id": LOCATION["id"],
-                "retailer": _clean(r["retailer"]),
-                "category": l0_canon.get(str(_clean(r["unified_category"])), _clean(r["unified_category"])),
-                "gold_category": _clean(r["unified_category"]),
-                "sku_count": int(r["sku_count"]) if _clean(r["sku_count"]) is not None else 0,
-                "median_price": _clean(r["median_price"]),
-                "pct_on_promo": _clean(r["pct_on_promo"]),
-            }
-            for _, r in pricing_l0.iterrows()
-        ],
-        "venn": [],
     }
 
     payload = {
@@ -870,6 +885,8 @@ def export() -> Path:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "gold_db": str(GOLD_DB),
             "status": "ready",
+            "skus_url": "data/store_ci_skus.json",
+            "sku_count": len(skus),
             "caveats": [
                 (
                     "Toggle Category vs Subcategory. Category is the full aisle family. "
@@ -923,7 +940,6 @@ def export() -> Path:
         "glossary": glossary_export,
         "departments": departments,
         "scoreboards": scoreboards,
-        "venn": location_payload["venn"],
         "crosswalk": [
             {
                 "coles_slug": _clean(r["coles_category_slug"]),
@@ -934,19 +950,27 @@ def export() -> Path:
             for _, r in crosswalk.iterrows()
         ],
         "matches": match_rows,
-        "skus": skus,
-        "space": location_payload["space"],
-        "pricing": location_payload["pricing"],
+        "skus": [],
+        "space": space_rows,
+        "pricing": pricing_rows,
+        "venn": [],
     }
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(payload, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+    OUT.write_text(
+        json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    OUT_SKUS.write_text(
+        json.dumps({"skus": skus}, ensure_ascii=False, allow_nan=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
     print(
         f"wrote {OUT} location={LOCATION['id']} categories={len(l0)} subcategories={len(l1)} "
         f"skus={len(skus)} excluded_non_bay={excluded_non_bay} "
         f"hidden_bay_incomplete={hidden_n} "
         f"kvi_both={kvi_summary['both_priced']}/{kvi_summary['defined']} "
-        f"bytes={OUT.stat().st_size}"
+        f"bytes={OUT.stat().st_size} skus_bytes={OUT_SKUS.stat().st_size}"
     )
     return OUT
 

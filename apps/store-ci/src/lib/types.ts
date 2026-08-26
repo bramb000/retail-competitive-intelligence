@@ -179,6 +179,8 @@ export interface StoreCiData {
     generated_at: string;
     gold_db?: string;
     status: "ready" | "waiting_for_data" | string;
+    skus_url?: string;
+    sku_count?: number;
     caveats: string[];
   };
   location?: {
@@ -186,11 +188,12 @@ export interface StoreCiData {
     name: string;
     state?: string;
     stores: Record<string, string>;
-    store_totals: StoreCiData["store_totals"];
-    departments: DepartmentRow[];
-    scoreboards: StoreCiData["scoreboards"];
-    skus: SkuRow[];
-    matches: StoreCiData["matches"];
+    store_totals?: StoreCiData["store_totals"];
+    /** Legacy nested blobs — prefer top-level fields; may be omitted to keep payload small. */
+    departments?: DepartmentRow[];
+    scoreboards?: StoreCiData["scoreboards"];
+    skus?: SkuRow[];
+    matches?: StoreCiData["matches"];
   };
   store_totals: {
     location_id?: string;
