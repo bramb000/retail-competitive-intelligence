@@ -29,6 +29,7 @@ from lake.etl.category_glossary import (  # noqa: E402
 from lake.etl.known_value_items import build_kvi_scoreboard  # noqa: E402
 
 GOLD_DB = REPO / "lake" / "gold" / "ashfield_compare.duckdb"
+COLES_CATALOGUE = REPO / "data" / "coles_catalogue_categories.csv.csv"
 OUT = REPO / "apps" / "store-ci" / "public" / "data" / "store_ci.json"
 
 # Active location cell — product grain is category × location.
@@ -47,6 +48,11 @@ DOMINANCE_SKU_EPS = 2.0
 # Category medians within this % are "price-aligned"; beyond = clear gap.
 PRICE_ALIGNED_PCT = 5.0
 PRICE_HOT_PCT = 15.0
+# Hide aisle for both banners when either has this share of SKUs on department
+# fixtures without bay numbers (location_class=other — e.g. Produce Department).
+# Unplaced-only (missing map data) does NOT trigger — that is data gaps, not fixtures.
+DEPT_FIXTURE_SHARE_MAX = 0.50
+
 
 
 def _empty_dept(cat_id: str, g: Dict[str, str], *, taxonomy: str) -> Dict[str, Any]:
@@ -72,6 +78,9 @@ def _empty_dept(cat_id: str, g: Dict[str, str], *, taxonomy: str) -> Dict[str, A
         "ww_median_price": None,
         "in_venn": "unknown",
         "gold_keys": [],
+        "bay_comparable": True,
+        "coles_bay_coverage_pct": None,
+        "ww_bay_coverage_pct": None,
     }
 
 
@@ -123,6 +132,79 @@ def _finish_departments(departments: List[Dict[str, Any]], coles_store_n: int, w
         else:
             d["median_gap_pct_coles_vs_ww"] = None
     return departments
+
+
+def _ci_visible(d: Dict[str, Any]) -> bool:
+    """Hide the aisle for both banners when bay coverage is not comparable."""
+    if d.get("bay_comparable") is False:
+        return False
+    return True
+
+
+def _load_coles_catalogue(path: Path = COLES_CATALOGUE) -> Dict[int, List[str]]:
+    """Coles product id → catalogue department slug(s)."""
+    if not path.exists():
+        return {}
+    import csv
+    from collections import defaultdict
+
+    by_sku: Dict[int, List[str]] = defaultdict(list)
+    with path.open(encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            try:
+                pid = int(row.get("retailer_product_id") or 0)
+            except (TypeError, ValueError):
+                continue
+            slug = (row.get("category") or "").strip().lower()
+            if pid and slug and slug not in by_sku[pid]:
+                by_sku[pid].append(slug)
+    return dict(by_sku)
+
+
+def _coles_slug_to_shared(glossary_rows: List[Dict[str, str]]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for row in glossary_rows:
+        slug = (row.get("coles_slug") or "").strip().lower()
+        shared = (row.get("shared_label") or "").strip()
+        if slug and shared:
+            out[slug] = shared
+    return out
+
+
+def _pick_coles_native_label(
+    slugs: List[str],
+    unified_cat: Optional[str],
+    slug_labels: Dict[str, str],
+    slug_to_shared: Dict[str, str],
+    gloss: Dict[str, Any],
+) -> Optional[str]:
+    if not slugs:
+        return None
+    if len(slugs) == 1:
+        return _format_coles_slug(slugs[0], slug_labels)
+    target_shared = shared_label_for_gold(str(unified_cat), gloss) if unified_cat else None
+    if target_shared:
+        for slug in slugs:
+            if slug_to_shared.get(slug) == target_shared:
+                return _format_coles_slug(slug, slug_labels)
+    return _format_coles_slug(slugs[0], slug_labels)
+
+
+def _coles_slug_labels(glossary_rows: List[Dict[str, str]]) -> Dict[str, str]:
+    labels: Dict[str, str] = {}
+    for row in glossary_rows:
+        slug = (row.get("coles_slug") or "").strip().lower()
+        label = (row.get("coles_label") or "").strip()
+        if slug and label:
+            labels[slug] = label
+    return labels
+
+
+def _format_coles_slug(slug: str, slug_labels: Dict[str, str]) -> str:
+    key = slug.strip().lower()
+    if key in slug_labels:
+        return slug_labels[key]
+    return key.replace("-", " ").title()
 
 
 # Weak / catch-all WW parents — Coles-empty L1s here merge into stronger parents
@@ -178,7 +260,7 @@ def export() -> Path:
         return OUT
 
     conn = duckdb.connect(str(GOLD_DB), read_only=True)
-    facts = conn.execute("""
+    facts_all = conn.execute("""
         SELECT retailer, retailer_product_id, name, clean_brand, unified_category,
                unified_subcategory, price_now, price_was, unit_price, is_promo, bay_key,
                indoor_x, indoor_y, location_class
@@ -191,8 +273,18 @@ def export() -> Path:
     crosswalk = conn.execute("SELECT * FROM gold.category_crosswalk").fetchdf()
     conn.close()
 
+    # Fair bay comparison: only aisle-placed SKUs for both banners. Department
+    # fixtures (Produce Department, Deli Department, etc. → location_class=other)
+    # and unplaced SKUs are excluded from assortment, promo, price, and match views.
+    # Bay-share tables are already aisle-only in gold.
+    facts = facts_all[facts_all["location_class"] == "aisle"].copy()
+    excluded_non_bay = int(len(facts_all) - len(facts))
+
     glossary_rows = load_glossary()
     gloss = build_gloss_index(glossary_rows)
+    coles_catalogue = _load_coles_catalogue()
+    coles_slug_labels = _coles_slug_labels(glossary_rows)
+    coles_slug_to_shared = _coles_slug_to_shared(glossary_rows)
 
     def gloss_for(cat: str) -> Dict[str, str]:
         shared = shared_label_for_gold(cat, gloss)
@@ -250,10 +342,31 @@ def export() -> Path:
     mapped = facts[facts["unified_category"].notna() & (facts["unified_category"] != "Unmapped")].copy()
     mapped_l1 = mapped[mapped["unified_subcategory"].notna() & (mapped["unified_subcategory"] != "")].copy()
 
-    def make_dept(*, cat_id, parent, shared, coles_label, ww_label, blurb, taxonomy, cf, wf, cs, ws, gold_keys):
+    def _class_rate(frame, location_class: str) -> Optional[float]:
+        if frame is None or len(frame) == 0:
+            return None
+        n = int((frame["location_class"] == location_class).sum())
+        return n / len(frame)
+
+    def make_dept(*, cat_id, parent, shared, coles_label, ww_label, blurb, taxonomy, cf, wf, cs, ws, gold_keys, all_cf=None, all_wf=None):
         coles_promo = float(cf["is_promo"].fillna(False).mean() * 100) if len(cf) else None
         ww_promo = float(wf["is_promo"].fillna(False).mean() * 100) if len(wf) else None
         has_data = len(cf) + len(wf) > 0
+        src_c = all_cf if all_cf is not None else cf
+        src_w = all_wf if all_wf is not None else wf
+        c_aisle = _class_rate(src_c, "aisle")
+        w_aisle = _class_rate(src_w, "aisle")
+        c_other = _class_rate(src_c, "other")
+        w_other = _class_rate(src_w, "other")
+        # Only hide when a banner's range is mostly department fixtures (other),
+        # not when SKUs are merely unplaced / missing coordinates.
+        bay_ok = (c_other is None or c_other < DEPT_FIXTURE_SHARE_MAX) and (
+            w_other is None or w_other < DEPT_FIXTURE_SHARE_MAX
+        )
+        c_bay_pct = space_pct(cs) if bay_ok else None
+        w_bay_pct = space_pct(ws) if bay_ok else None
+        c_bay_n = bay_count(cs) if bay_ok else None
+        w_bay_n = bay_count(ws) if bay_ok else None
         return {
             "id": cat_id,
             "location_id": LOCATION["id"],
@@ -265,20 +378,25 @@ def export() -> Path:
             "taxonomy": taxonomy,
             "data_status": "ready" if has_data else "awaiting_scrape",
             "gold_keys": gold_keys,
+            "bay_comparable": bay_ok,
+            "coles_bay_coverage_pct": round(100.0 * c_aisle, 1) if c_aisle is not None else None,
+            "ww_bay_coverage_pct": round(100.0 * w_aisle, 1) if w_aisle is not None else None,
+            "coles_dept_fixture_pct": round(100.0 * c_other, 1) if c_other is not None else None,
+            "ww_dept_fixture_pct": round(100.0 * w_other, 1) if w_other is not None else None,
             "coles_skus": int(len(cf)),
             "ww_skus": int(len(wf)),
-            "coles_pct_store_bays": space_pct(cs),
-            "ww_pct_store_bays": space_pct(ws),
-            "coles_bay_count": bay_count(cs),
-            "ww_bay_count": bay_count(ws),
+            "coles_pct_store_bays": c_bay_pct,
+            "ww_pct_store_bays": w_bay_pct,
+            "coles_bay_count": c_bay_n,
+            "ww_bay_count": w_bay_n,
             "coles_store_bay_count": (
                 int(_clean(cs.iloc[0]["store_bay_count"]))
-                if not cs.empty and _clean(cs.iloc[0].get("store_bay_count")) is not None
+                if bay_ok and not cs.empty and _clean(cs.iloc[0].get("store_bay_count")) is not None
                 else None
             ),
             "ww_store_bay_count": (
                 int(_clean(ws.iloc[0]["store_bay_count"]))
-                if not ws.empty and _clean(ws.iloc[0].get("store_bay_count")) is not None
+                if bay_ok and not ws.empty and _clean(ws.iloc[0].get("store_bay_count")) is not None
                 else None
             ),
             "coles_pct_promo": round(coles_promo, 1) if coles_promo is not None else None,
@@ -317,6 +435,7 @@ def export() -> Path:
             l0.append(_empty_dept(cat_id, g, taxonomy=taxonomy))
             continue
         key_set = set(gold_keys)
+        all_mask = facts_all["unified_category"].isin(key_set)
         l0.append(
             make_dept(
                 cat_id=cat_id,
@@ -331,9 +450,12 @@ def export() -> Path:
                 cs=space_l0[(space_l0["unified_category"].isin(key_set)) & (space_l0["retailer"] == "Coles")],
                 ws=space_l0[(space_l0["unified_category"].isin(key_set)) & (space_l0["retailer"] == "Woolworths")],
                 gold_keys=gold_keys,
+                all_cf=facts_all[all_mask & (facts_all["retailer"] == "Coles")],
+                all_wf=facts_all[all_mask & (facts_all["retailer"] == "Woolworths")],
             )
         )
     l0 = _finish_departments(l0, coles_store_n, ww_store_n)
+    l0_bay_ok = {d["id"]: bool(d.get("bay_comparable", True)) for d in l0}
 
     alias_map = subcategory_alias_map()
     cross_parent = subcategory_cross_parent_map()
@@ -418,26 +540,59 @@ def export() -> Path:
         )
         mask = (mapped_l1["_shared_parent"] == shared_parent) & (mapped_l1["_shared_sub"] == shared_sub)
         space_mask = (space_l1["_shared_parent"] == shared_parent) & (space_l1["_shared_sub"] == shared_sub)
-        l1.append(
-            make_dept(
-                cat_id=cat_id,
-                parent=shared_parent,
-                shared=shared_sub,
-                coles_label=shared_sub,
-                ww_label=shared_sub,
-                blurb=(
-                    f"{parent_gloss['shared_label']} subcategory · "
-                    f"Coles parent: {parent_gloss['coles_label']} · WW parent: {parent_gloss['ww_label']}"
-                ),
-                taxonomy="observed",
-                cf=mapped_l1[mask & (mapped_l1["retailer"] == "Coles")],
-                wf=mapped_l1[mask & (mapped_l1["retailer"] == "Woolworths")],
-                cs=space_l1[space_mask & (space_l1["retailer"] == "Coles")],
-                ws=space_l1[space_mask & (space_l1["retailer"] == "Woolworths")],
-                gold_keys=native_keys,
-            )
+        dept = make_dept(
+            cat_id=cat_id,
+            parent=shared_parent,
+            shared=shared_sub,
+            coles_label=shared_sub,
+            ww_label=shared_sub,
+            blurb=(
+                f"{parent_gloss['shared_label']} subcategory · "
+                f"Coles parent: {parent_gloss['coles_label']} · WW parent: {parent_gloss['ww_label']}"
+            ),
+            taxonomy="observed",
+            cf=mapped_l1[mask & (mapped_l1["retailer"] == "Coles")],
+            wf=mapped_l1[mask & (mapped_l1["retailer"] == "Woolworths")],
+            cs=space_l1[space_mask & (space_l1["retailer"] == "Coles")],
+            ws=space_l1[space_mask & (space_l1["retailer"] == "Woolworths")],
+            gold_keys=native_keys,
         )
+        # Inherit parent bay gate — produce L1 must not surface as bay-dominant.
+        if not l0_bay_ok.get(shared_parent, True):
+            dept["bay_comparable"] = False
+            dept["coles_pct_store_bays"] = None
+            dept["ww_pct_store_bays"] = None
+            dept["coles_bay_count"] = None
+            dept["ww_bay_count"] = None
+            dept["coles_store_bay_count"] = None
+            dept["ww_store_bay_count"] = None
+        l1.append(dept)
     l1 = _finish_departments(l1, coles_store_n, ww_store_n)
+
+    # Drop non-comparable aisles for BOTH banners (e.g. Fruit & Vegetables when WW
+    # produce is mostly Produce Department). Showing Coles alone is not a fair CI cell.
+    hidden_l0 = [d for d in l0 if not _ci_visible(d)]
+    hidden_parent_ids = {d["id"] for d in hidden_l0}
+    hidden_parent_labels = {d["shared_label"] for d in hidden_l0}
+    hidden_gold_keys = {gk for d in hidden_l0 for gk in (d.get("gold_keys") or [])}
+    hidden_gold_keys |= hidden_parent_ids | hidden_parent_labels
+
+    l0 = [d for d in l0 if _ci_visible(d)]
+    l1 = [
+        d
+        for d in l1
+        if _ci_visible(d)
+        and (d.get("parent_category") or "") not in hidden_parent_ids
+        and (d.get("parent_category") or "") not in hidden_parent_labels
+    ]
+
+    # Store % denominators exclude hidden aisles so remaining rows stay consistent.
+    visible_mapped = mapped[~mapped["unified_category"].isin(hidden_gold_keys)].copy()
+    coles_store_n = max(int(len(visible_mapped[visible_mapped["retailer"] == "Coles"])), 1)
+    ww_store_n = max(int(len(visible_mapped[visible_mapped["retailer"] == "Woolworths"])), 1)
+    l0 = _finish_departments(l0, coles_store_n, ww_store_n)
+    l1 = _finish_departments(l1, coles_store_n, ww_store_n)
+    hidden_n = len(hidden_l0)
 
     l0_canon: Dict[str, str] = {}
     for d in l0:
@@ -475,6 +630,8 @@ def export() -> Path:
     for _, r in facts.iterrows():
         cat = _clean(r.get("unified_category"))
         sub = _clean(r.get("unified_subcategory"))
+        if cat and (str(cat) in hidden_gold_keys or shared_label_for_gold(str(cat), gloss) in hidden_parent_labels):
+            continue
         l0_id = l0_canon.get(str(cat)) if cat and cat != "Unmapped" else None
         shared_parent = shared_label_for_gold(str(cat), gloss) if cat and cat != "Unmapped" else None
         resolved = (
@@ -503,6 +660,11 @@ def export() -> Path:
             "gold_category": str(cat) if cat else None,
             "shared_label": gloss_for(str(cat))["shared_label"] if l0_id else None,
             "subcategory": shared_sub or _clean(sub),
+            "native_category": None,
+            "native_subcategory": None,
+            "coles_mapped_category": None,
+            "coles_mapped_subcategory": None,
+            "ww_mapped_category": None,
             "price_now": _clean(r["price_now"]),
             "price_was": _clean(r["price_was"]),
             "unit_price": _clean(r["unit_price"]),
@@ -512,6 +674,24 @@ def export() -> Path:
             "indoor_y": _clean(r["indoor_y"]),
             "location_class": _clean(r["location_class"]),
         }
+        if row["retailer"] == "Coles":
+            slugs = coles_catalogue.get(row["id"]) or []
+            if slugs:
+                row["native_category"] = _pick_coles_native_label(
+                    slugs, str(cat) if cat else None, coles_slug_labels, coles_slug_to_shared, gloss
+                )
+            g = gloss_for(str(cat)) if cat else {}
+            row["ww_mapped_category"] = shared_sub or _clean(sub) or g.get("ww_label")
+        elif row["retailer"] == "Woolworths":
+            row["native_category"] = str(cat) if cat else None
+            row["native_subcategory"] = _clean(sub)
+            shared = gloss_for(str(cat))["shared_label"] if cat else None
+            g = gloss.get(shared) or {}
+            row["coles_mapped_category"] = g.get("coles_label") or (
+                (g.get("coles_aliases") or [None])[0] if isinstance(g.get("coles_aliases"), list) else None
+            )
+            # Shared L1 is the finest Coles↔WW mapping we have when Coles catalogue has no native sub.
+            row["coles_mapped_subcategory"] = shared_sub or _clean(sub)
         if row["price_now"] is not None:
             kvi_sku_pool.append(row)
         if l0_id:
@@ -532,9 +712,23 @@ def export() -> Path:
         "ww_only": sum(1 for k in known_value if k.get("cheaper") == "ww_only"),
     }
 
+    bay_ids = {
+        (str(r["retailer"]), int(r["retailer_product_id"]))
+        for _, r in facts.iterrows()
+    }
+
     match_rows = []
     for _, m in matches.iterrows():
+        coles_id = int(m["coles_id"])
+        ww_id = int(m["ww_id"])
+        if ("Coles", coles_id) not in bay_ids or ("Woolworths", ww_id) not in bay_ids:
+            continue
         ww_l0 = _clean(m["ww_l0"])
+        if ww_l0 and (
+            str(ww_l0) in hidden_gold_keys
+            or shared_label_for_gold(str(ww_l0), gloss) in hidden_parent_labels
+        ):
+            continue
         ww_l1 = _clean(m["ww_l1"])
         shared_parent = shared_label_for_gold(str(ww_l0), gloss) if ww_l0 else None
         resolved = (
@@ -550,8 +744,8 @@ def export() -> Path:
         match_rows.append(
             {
                 "location_id": LOCATION["id"],
-                "coles_id": int(m["coles_id"]),
-                "ww_id": int(m["ww_id"]),
+                "coles_id": coles_id,
+                "ww_id": ww_id,
                 "coles_name": _clean(m["coles_name"]),
                 "ww_name": _clean(m["ww_name"]),
                 "brand": _clean(m["brand"]),
@@ -584,12 +778,14 @@ def export() -> Path:
     awaiting_l0 = sum(1 for d in l0 if d["data_status"] == "awaiting_scrape")
     store_totals = {
         "location_id": LOCATION["id"],
-        "coles_skus": int(len(facts[facts["retailer"] == "Coles"])),
-        "ww_skus": int(len(facts[facts["retailer"] == "Woolworths"])),
-        "coles_mapped_skus": int(len(mapped[mapped["retailer"] == "Coles"])),
-        "ww_mapped_skus": int(len(mapped[mapped["retailer"] == "Woolworths"])),
+        "coles_skus": int(len(visible_mapped[visible_mapped["retailer"] == "Coles"])),
+        "ww_skus": int(len(visible_mapped[visible_mapped["retailer"] == "Woolworths"])),
+        "coles_mapped_skus": int(len(visible_mapped[visible_mapped["retailer"] == "Coles"])),
+        "ww_mapped_skus": int(len(visible_mapped[visible_mapped["retailer"] == "Woolworths"])),
         "unmapped_coles": unmapped_coles,
         "unmapped_ww": unmapped_ww,
+        "excluded_non_bay_skus": excluded_non_bay,
+        "hidden_bay_incomplete_categories": hidden_n,
         "departments": len(l0),
         "departments_ready": len(l0) - awaiting_l0,
         "departments_awaiting": awaiting_l0,
@@ -667,6 +863,19 @@ def export() -> Path:
                     "Subcategory uses Woolworths labels; Coles is mapped onto them."
                 ),
                 (
+                    "Only bay-stocked products count for both banners (aisle + bay). "
+                    "Department fixtures without bay numbers — e.g. Produce Department, "
+                    "Deli Department — are excluded so assortment and bay share stay "
+                    "comparable."
+                ),
+                (
+                    "If either banner has most of a category on department fixtures "
+                    "without bay numbers (location_class=other — e.g. Produce "
+                    "Department), that whole aisle is hidden for both Coles and "
+                    "Woolworths, including subcategories. Missing map pins "
+                    "(unplaced) alone do not hide an aisle."
+                ),
+                (
                     "Same-product matching is brand + similar name (not barcodes). "
                     "Coles subcategories: inherit from a matched WW product first, else "
                     "infer inside that parent aisle — never stamp a whole Coles "
@@ -721,7 +930,9 @@ def export() -> Path:
     OUT.write_text(json.dumps(payload, ensure_ascii=False, allow_nan=False), encoding="utf-8")
     print(
         f"wrote {OUT} location={LOCATION['id']} categories={len(l0)} subcategories={len(l1)} "
-        f"skus={len(skus)} kvi_both={kvi_summary['both_priced']}/{kvi_summary['defined']} "
+        f"skus={len(skus)} excluded_non_bay={excluded_non_bay} "
+        f"hidden_bay_incomplete={hidden_n} "
+        f"kvi_both={kvi_summary['both_priced']}/{kvi_summary['defined']} "
         f"bytes={OUT.stat().st_size}"
     )
     return OUT
@@ -730,6 +941,10 @@ def export() -> Path:
 def _build_dominance(departments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for d in departments:
+        if not d.get("bay_comparable", True):
+            # Not fair to crown a space winner when either banner's range is
+            # mostly off numbered bays (e.g. Produce Department).
+            continue
         cb = d.get("coles_pct_store_bays")
         wb = d.get("ww_pct_store_bays")
         cs = d.get("coles_pct_store_skus")
@@ -873,6 +1088,8 @@ def _empty_payload(reason: str) -> Dict[str, Any]:
         "ww_mapped_skus": 0,
         "unmapped_coles": 0,
         "unmapped_ww": 0,
+        "excluded_non_bay_skus": 0,
+        "hidden_bay_incomplete_categories": 0,
         "departments": 0,
         "departments_ready": 0,
         "departments_awaiting": 0,

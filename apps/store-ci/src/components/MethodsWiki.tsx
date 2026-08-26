@@ -39,7 +39,7 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
             <a href="#/methods/bay-share">How much shelf space a category gets</a>
           </li>
           <li>
-            <a href="#/methods/floor-map">Floor maps (category adjacency)</a>
+            <a href="#/methods/macrospace">Macrospace (category adjacency)</a>
           </li>
           <li>
             <a href="#/methods/bay-key">How we count shelf bays at each retailer</a>
@@ -262,18 +262,37 @@ export function MethodsWiki({ onBack }: { onBack: () => void }) {
           This is a count of shelf sections, <strong>not</strong> floor area in square metres, and
           not a raw map overlay between Coles and Woolworths.
         </p>
+        <p>
+          Assortment counts use the <strong>same rule</strong> for both banners: only products that
+          sit on an identified shelf bay. Department areas without bay numbers (for example Woolworths{" "}
+          <em>Produce Department</em> or <em>Deli Department</em>, and Coles fixtures that never got
+          map pins) are left out so range and bay share stay comparable.
+        </p>
+        <p>
+          If either banner has most of a category on <strong>department fixtures without bay
+          numbers</strong> (for example Woolworths <em>Produce Department</em>), we hide that whole
+          aisle for <strong>both</strong> Coles and Woolworths — category and subcategories. Products
+          that are merely missing map pins (<em>unplaced</em>) do not trigger this; that is a data
+          gap, not a fixture.
+        </p>
       </section>
 
-      <section className="panel panel--cream" id="floor-map">
-        <h2>Floor maps — which aisles sit next to each other</h2>
+      <section className="panel panel--cream" id="macrospace">
+        <h2>Macrospace — which aisles sit next to each other</h2>
         <p className="support">
-          The <strong>Floor map</strong> tab draws each store as a coloured shelf plan — one block
+          The <strong>Macrospace</strong> tab draws each store as a coloured shelf plan — one block
           per bay, using in-store map coordinates.
         </p>
         <ul>
           <li>
             Colour follows the <strong>Category / Subcategory</strong> toggle. Each bay is shaded by
             its dominant group; tap a bay to see aisle, side, and mix.
+          </li>
+          <li>
+            The bay panel opens on <strong>Overview</strong> (taxonomy cards and products). When
+            placement and labels diverge — for example specialty crackers ranged in deli but named
+            Biscuits &amp; Crackers in the comparison taxonomy — an <strong>Insights</strong> tab
+            appears with that second-layer explanation.
           </li>
           <li>
             <strong>Drag</strong> to pan, <strong>pinch</strong> or scroll to zoom,{" "}

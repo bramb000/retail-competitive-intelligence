@@ -14,7 +14,7 @@ const BOARD_TO_SLUG: Record<BoardTab, string> = {
   dominance: "dominance",
   price: "price",
   kvi: "staples",
-  floor: "floor",
+  macrospace: "macrospace",
 };
 
 const SLUG_TO_BOARD: Record<string, BoardTab> = {
@@ -25,7 +25,8 @@ const SLUG_TO_BOARD: Record<string, BoardTab> = {
   price: "price",
   staples: "kvi",
   kvi: "kvi",
-  floor: "floor",
+  macrospace: "macrospace",
+  floor: "macrospace",
 };
 
 export function boardSlug(board: BoardTab): string {
@@ -37,11 +38,12 @@ export function parseHash(hash: string): HashState {
   const parts = raw.split("/").filter(Boolean);
 
   if (parts[0] === "methods") {
+    const section = parts[1] || undefined;
     return {
       view: "methods",
       board: "departments",
       deptId: null,
-      methodsSection: parts[1] || undefined,
+      methodsSection: section === "floor-map" ? "macrospace" : section,
     };
   }
 

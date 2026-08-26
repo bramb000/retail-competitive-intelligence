@@ -6,7 +6,7 @@ const BOARDS: Array<{ id: BoardTab; label: string; hint: string }> = [
   { id: "dominance", label: "Dominance", hint: "Who owns each aisle" },
   { id: "price", label: "Price", hint: "Where prices diverge" },
   { id: "kvi", label: "Staples", hint: "Everyday price perception" },
-  { id: "floor", label: "Floor", hint: "Store layout by aisle" },
+  { id: "macrospace", label: "Macrospace", hint: "Bay layout map" },
 ];
 
 interface Props {

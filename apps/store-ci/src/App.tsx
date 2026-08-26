@@ -8,7 +8,7 @@ import { KnownValueBoard } from "./components/KnownValueBoard";
 import { LocationPicker } from "./components/LocationPicker";
 import { MethodsWiki } from "./components/MethodsWiki";
 import { PriceCompetitionBoard } from "./components/PriceCompetitionBoard";
-import { StoreFloorMap } from "./components/StoreFloorMap";
+import { StoreMacrospaceMap } from "./components/StoreMacrospaceMap";
 import { StoreScoreboard } from "./components/StoreScoreboard";
 import {
   parseHash,
@@ -23,7 +23,7 @@ const BOARD_CRUMB: Record<BoardTab, string> = {
   dominance: "Dominance",
   price: "Price",
   kvi: "Staples",
-  floor: "Floor",
+  macrospace: "Macrospace",
 };
 
 function applyGrain(data: StoreCiData, grain: Grain): StoreCiData {
@@ -56,6 +56,7 @@ export default function App() {
   const [board, setBoard] = useState<BoardTab>("departments");
   const [methodsSection, setMethodsSection] = useState<string | undefined>();
   const [deptId, setDeptId] = useState<string | null>(null);
+  const [deptMatchBy, setDeptMatchBy] = useState<"id" | "shared_label">("id");
   const [locationId, setLocationId] = useState<string>("ashfield");
   const [grain, setGrain] = useState<Grain>("category");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -133,6 +134,7 @@ export default function App() {
     setView("scoreboard");
     setBoard(next);
     setDeptId(null);
+    setDeptMatchBy("id");
     setMethodsSection(undefined);
   }, []);
 
@@ -144,6 +146,13 @@ export default function App() {
 
   const selectDept = useCallback((id: string) => {
     setDeptId(id);
+    setDeptMatchBy("id");
+    setView("scoreboard");
+  }, []);
+
+  const selectDeptFromMacrospace = useCallback((id: string) => {
+    setDeptId(id);
+    setDeptMatchBy("shared_label");
     setView("scoreboard");
   }, []);
 
@@ -166,7 +175,13 @@ export default function App() {
       "Methods"
     ) : dept ? (
       <>
-        <button type="button" onClick={() => setDeptId(null)}>
+        <button
+          type="button"
+          onClick={() => {
+            setDeptId(null);
+            setDeptMatchBy("id");
+          }}
+        >
           {BOARD_CRUMB[board]}
         </button>
         {" / "}
@@ -223,8 +238,13 @@ export default function App() {
           dept={dept}
           grain={grain}
           locationName={locationName}
-          onBack={() => setDeptId(null)}
+          onBack={() => {
+            setDeptId(null);
+            setDeptMatchBy("id");
+          }}
           onOpenMethods={openMethods}
+          backLabel={board === "macrospace" ? "Macrospace" : undefined}
+          matchBy={deptMatchBy}
         />
       ) : (
         <>
@@ -263,12 +283,13 @@ export default function App() {
               onOpenMethods={openMethods}
             />
           ) : null}
-          {board === "floor" ? (
-            <StoreFloorMap
+          {board === "macrospace" ? (
+            <StoreMacrospaceMap
               data={viewData}
               grain={grain}
               locationName={locationName}
               onOpenMethods={openMethods}
+              onViewAllProducts={selectDeptFromMacrospace}
             />
           ) : null}
         </>

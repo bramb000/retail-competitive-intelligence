@@ -22,9 +22,28 @@ interface Props {
   locationName: string;
   onBack: () => void;
   onOpenMethods: (sectionId?: string) => void;
+  /** When set, back control uses this label (e.g. Macrospace). */
+  backLabel?: string;
+  /** Match SKUs by shared map label so multi-parent subcategories open as one list. */
+  matchBy?: "id" | "shared_label";
 }
 
-function skuInDept(s: SkuRow, dept: DepartmentRow, grain: Grain): boolean {
+function skuInDept(
+  s: SkuRow,
+  dept: DepartmentRow,
+  grain: Grain,
+  matchBy: "id" | "shared_label" = "id",
+): boolean {
+  if (matchBy === "shared_label") {
+    if (grain === "subcategory") {
+      return (s.subcategory || s.shared_label) === dept.shared_label;
+    }
+    return (
+      s.shared_label === dept.shared_label ||
+      s.category === dept.id ||
+      s.gold_category === dept.shared_label
+    );
+  }
   if (grain === "subcategory") return s.subcategory_id === dept.id;
   if (s.category === dept.id) return true;
   const keys = dept.gold_keys ?? [];
@@ -35,7 +54,20 @@ function matchInDept(
   m: StoreCiData["matches"][number],
   dept: DepartmentRow,
   grain: Grain,
+  matchBy: "id" | "shared_label" = "id",
 ): boolean {
+  if (matchBy === "shared_label") {
+    if (grain === "subcategory") {
+      return m.subcategory_id?.endsWith(`::${dept.shared_label}`) === true ||
+        m.ww_l0 === dept.shared_label;
+    }
+    return (
+      m.category === dept.id ||
+      m.ww_l0 === dept.id ||
+      m.ww_l0 === dept.shared_label ||
+      m.ww_l0 === dept.ww_label
+    );
+  }
   if (grain === "subcategory") return m.subcategory_id === dept.id;
   if (m.category === dept.id) return true;
   const keys = dept.gold_keys ?? [];
@@ -43,7 +75,16 @@ function matchInDept(
   return m.ww_l0 === dept.id || m.ww_l0 === dept.shared_label || m.ww_l0 === dept.ww_label;
 }
 
-export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenMethods }: Props) {
+export function CategoryDrill({
+  data,
+  dept,
+  grain,
+  locationName,
+  onBack,
+  onOpenMethods,
+  backLabel,
+  matchBy = "id",
+}: Props) {
   const [retailer, setRetailer] = useState<"All" | "Coles" | "Woolworths">("All");
   const [search, setSearch] = useState("");
   const [promoOnly, setPromoOnly] = useState(false);
@@ -53,7 +94,7 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
 
   const skus = useMemo(() => {
     return data.skus.filter((s) => {
-      if (!skuInDept(s, dept, grain)) return false;
+      if (!skuInDept(s, dept, grain, matchBy)) return false;
       if (retailer !== "All" && s.retailer !== retailer) return false;
       if (promoOnly && !s.is_promo) return false;
       if (search.trim()) {
@@ -63,11 +104,11 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
       }
       return true;
     });
-  }, [data.skus, dept, grain, retailer, promoOnly, search]);
+  }, [data.skus, dept, grain, matchBy, retailer, promoOnly, search]);
 
   const matches = useMemo(
-    () => data.matches.filter((m) => matchInDept(m, dept, grain)),
-    [data.matches, dept, grain],
+    () => data.matches.filter((m) => matchInDept(m, dept, grain, matchBy)),
+    [data.matches, dept, grain, matchBy],
   );
 
   const maxSku = Math.max(dept.coles_skus, dept.ww_skus, 1);
@@ -79,7 +120,7 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
     <>
       <header className="hero">
         <button type="button" className="chip" onClick={onBack}>
-          ← Back to {nounMany}
+          ← Back to {backLabel ?? nounMany}
         </button>
         <h1 style={{ marginTop: "1rem" }}>
           {dept.shared_label}
@@ -126,7 +167,11 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
           <div className="kpi-label">
             Bay share
             <InfoTip
-              plain="Of all shelf bays in this store, what share belongs to this aisle? Mixed bays are split by product mix. Shown as a percent and as X of Y bay-equivalents."
+              plain={
+                dept.bay_comparable === false
+                  ? "Bay share is hidden here: either Coles or Woolworths has most of this aisle on department fixtures without bay numbers (e.g. Produce Department), so a space comparison would be unfair."
+                  : "Of all shelf bays in this store, what share belongs to this aisle? Mixed bays are split by product mix. Shown as a percent and as X of Y bay-equivalents."
+              }
               methodsId="bay-share"
               onOpenMethods={onOpenMethods}
             />
@@ -136,8 +181,9 @@ export function CategoryDrill({ data, dept, grain, locationName, onBack, onOpenM
             {pctFmt(dept.ww_pct_store_bays)}
           </div>
           <div className="kpi-insight">
-            {bayFmt(dept.coles_bay_count)} of {bayFmt(dept.coles_store_bay_count)} ·{" "}
-            {bayFmt(dept.ww_bay_count)} of {bayFmt(dept.ww_store_bay_count)}
+            {dept.bay_comparable === false
+              ? "Not comparable — thin bay coverage"
+              : `${bayFmt(dept.coles_bay_count)} of ${bayFmt(dept.coles_store_bay_count)} · ${bayFmt(dept.ww_bay_count)} of ${bayFmt(dept.ww_store_bay_count)}`}
           </div>
         </div>
         <div className="kpi-card">

@@ -1,6 +1,6 @@
 export type Retailer = "Coles" | "Woolworths";
 
-export type BoardTab = "departments" | "dominance" | "price" | "kvi" | "floor";
+export type BoardTab = "departments" | "dominance" | "price" | "kvi" | "macrospace";
 
 export type Grain = "category" | "subcategory";
 
@@ -32,6 +32,12 @@ export interface DepartmentRow {
   taxonomy?: "glossary" | "observed" | string;
   data_status?: "ready" | "awaiting_scrape" | string;
   gold_keys?: string[];
+  /** False when either banner has too little of this category on numbered bays. */
+  bay_comparable?: boolean;
+  coles_bay_coverage_pct?: number | null;
+  ww_bay_coverage_pct?: number | null;
+  coles_dept_fixture_pct?: number | null;
+  ww_dept_fixture_pct?: number | null;
   coles_skus: number;
   ww_skus: number;
   coles_pct_store_bays: number | null;
@@ -142,6 +148,14 @@ export interface SkuRow {
   gold_category?: string | null;
   shared_label: string | null;
   subcategory: string | null;
+  /** Coles catalogue department label, or WW Iris L0 breadcrumb. */
+  native_category?: string | null;
+  /** WW Iris L1 breadcrumb (Woolworths only). */
+  native_subcategory?: string | null;
+  /** How the other retailer would label this aisle family (for macrospace comparison). */
+  coles_mapped_category?: string | null;
+  coles_mapped_subcategory?: string | null;
+  ww_mapped_category?: string | null;
   price_now: number | null;
   price_was: number | null;
   is_promo: boolean;
@@ -186,6 +200,7 @@ export interface StoreCiData {
     ww_mapped_skus: number;
     unmapped_coles: number;
     unmapped_ww: number;
+    excluded_non_bay_skus?: number;
     departments: number;
     departments_ready?: number;
     departments_awaiting?: number;

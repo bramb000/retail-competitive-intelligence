@@ -45,6 +45,8 @@ Implemented in `gold.category_space` (`silver_to_gold.py`). Across categories, \
 - Not comparable via raw `indoor_x` / `indoor_y` across Coles vs Woolworths (different maps)  
 - Unplaced SKUs do not enter the numerator or the store-wide bay inventory used in the denominator for that retailer  
 - Not majority-owner / winner-take-all (fractional slices preserve shared bays)  
+- Store-CI assortment / promo / price / match views also drop `location_class != aisle` for **both** banners (Produce Department, Deli Department, and other non-bay fixtures) so SKU counts align with bay share  
+- If either banner has ≥ 50% of a category on department fixtures (`location_class=other`), the whole aisle (both banners, including subcategories) is omitted from store-CI. Mere `unplaced` gaps do not hide an aisle.  
 
 ---
 

@@ -3,7 +3,7 @@
 **Grain:** category × location (Ashfield is the only live location today).
 
 Full-store Coles ↔ Woolworths competitive intelligence in shared commercial
-language — aisle space, dominance, price, everyday staples, and floor layout.
+language — aisle space, dominance, price, everyday staples, and macrospace layout.
 Empty categories show as *data still filling in* while coverage completes.
 
 ## Run
@@ -27,7 +27,7 @@ After scrapers / ETL:
 - **Dominance** — who owns each category (bay → assortment)
 - **Price** — category median gaps
 - **Staples** — everyday products that shape price perception
-- **Floor** — store layout by aisle
+- **Macrospace** — store layout by aisle
 - Category drill-in for any department at this location
 - **Methods** — plain-language guide to how numbers are built
 
