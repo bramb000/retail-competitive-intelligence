@@ -141,25 +141,39 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
             </h2>
             <p className="support">Open a row to drill into that {nounOne}.</p>
             <div className="scoreboard-table-wrap">
-              <table className="scoreboard-table">
+              <table className="scoreboard-table scoreboard-table--aisle">
+                <colgroup>
+                  <col className="scoreboard-col-label" />
+                  <col className="scoreboard-col-bays" />
+                  <col className="scoreboard-col-promo" />
+                  <col className="scoreboard-col-says" />
+                  <col className="scoreboard-col-says" />
+                  <col className="scoreboard-col-skus" />
+                  <col className="scoreboard-col-ratio" />
+                  <col className="scoreboard-col-action" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>{title}</th>
-                    <th className="num">
-                      <span className="th-with-mark">
-                        Share of store bays
-                        <DualBannerMarks />
-                        <InfoTip
-                          plain="Of all shelf bays we can identify in this store, what share belongs to this aisle? Mixed bays are split by product mix (fractional), shown as a percent and as X of Y bay-equivalents."
-                          methodsId="bay-share"
-                          onOpenMethods={onOpenMethods}
-                        />
+                    <th className="num scoreboard-th-stack">
+                      <span className="th-stack">
+                        <span className="th-stack-title">Bay share</span>
+                        <span className="th-stack-marks">
+                          <DualBannerMarks />
+                          <InfoTip
+                            plain="Of all shelf bays we can identify in this store, what share belongs to this aisle? Mixed bays are split by product mix (fractional), shown as a percent and as X of Y bay-equivalents."
+                            methodsId="bay-share"
+                            onOpenMethods={onOpenMethods}
+                          />
+                        </span>
                       </span>
                     </th>
-                    <th className="num">
-                      <span className="th-with-mark">
-                        On special
-                        <DualBannerMarks />
+                    <th className="num scoreboard-th-stack">
+                      <span className="th-stack">
+                        <span className="th-stack-title">On special</span>
+                        <span className="th-stack-marks">
+                          <DualBannerMarks />
+                        </span>
                       </span>
                     </th>
                     <th>
@@ -174,9 +188,15 @@ export function StoreScoreboard({ data, grain, locationName, onSelect, onOpenMet
                         Says
                       </span>
                     </th>
-                    <th className="num coles-text">Products</th>
-                    <th className="num ww-text">Products</th>
-                    <th className="num">Product ratio</th>
+                    <th className="num scoreboard-th-stack">
+                      <span className="th-stack">
+                        <span className="th-stack-title">Products</span>
+                        <span className="th-stack-marks">
+                          <DualBannerMarks />
+                        </span>
+                      </span>
+                    </th>
+                    <th className="num">Ratio</th>
                     <th />
                   </tr>
                 </thead>
@@ -225,29 +245,32 @@ function DeptRow({
         />
         {awaiting ? <div className="muted tiny">Data still filling in</div> : null}
       </td>
-      <td className="num">
+      <td className="num scoreboard-bays-cell">
         <div>
           <span className="coles-text">{pctFmt(dept.coles_pct_store_bays)}</span>
           {" / "}
           <span className="ww-text">{pctFmt(dept.ww_pct_store_bays)}</span>
         </div>
-        <div className="muted tiny">
+        <div className="muted tiny scoreboard-bays-detail">
           {bayOfStore(dept.coles_bay_count, dept.coles_store_bay_count)}
           {" · "}
           {bayOfStore(dept.ww_bay_count, dept.ww_store_bay_count)}
         </div>
       </td>
-      <td className="num">
+      <td className="num scoreboard-promo-cell">
         <span className="coles-text">{pctFmt(dept.coles_pct_promo)}</span>
         {" / "}
         <span className="ww-text">{pctFmt(dept.ww_pct_promo)}</span>
       </td>
-      <td className="coles-text">{dept.coles_label}</td>
-      <td className="ww-text">{dept.ww_label}</td>
-      <td className="num">{intFmt(dept.coles_skus)}</td>
-      <td className="num">{intFmt(dept.ww_skus)}</td>
-      <td className="num">{skuRatio(dept.coles_skus, dept.ww_skus)}</td>
-      <td className="num">
+      <td className="coles-text scoreboard-says-cell">{dept.coles_label}</td>
+      <td className="ww-text scoreboard-says-cell">{dept.ww_label}</td>
+      <td className="num scoreboard-skus-cell">
+        <span className="coles-text">{intFmt(dept.coles_skus)}</span>
+        {" / "}
+        <span className="ww-text">{intFmt(dept.ww_skus)}</span>
+      </td>
+      <td className="num scoreboard-ratio-cell">{skuRatio(dept.coles_skus, dept.ww_skus)}</td>
+      <td className="num scoreboard-action-cell">
         <button type="button" className="chip chip-clear" onClick={() => onSelect(dept.id)}>
           Open →
         </button>

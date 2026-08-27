@@ -648,12 +648,117 @@
   table-layout: fixed;
 }
 
+/* Aisle / subcategory overview — percentage cols so leftover width doesn't inflate Products. */
+.scoreboard-table--aisle {
+  min-width: 52rem;
+}
+
+.scoreboard-table--aisle .scoreboard-col-label {
+  width: 20%;
+}
+
+.scoreboard-table--aisle .scoreboard-col-bays {
+  width: 18%;
+}
+
+.scoreboard-table--aisle .scoreboard-col-promo {
+  width: 10%;
+}
+
+.scoreboard-table--aisle .scoreboard-col-says {
+  width: 11%;
+}
+
+.scoreboard-table--aisle .scoreboard-col-skus {
+  width: 11%;
+}
+
+.scoreboard-table--aisle .scoreboard-col-ratio {
+  width: 10%;
+}
+
+.scoreboard-table--aisle .scoreboard-col-action {
+  width: 8%;
+}
+
+.scoreboard-table--aisle th {
+  white-space: normal;
+  vertical-align: bottom;
+  line-height: 1.25;
+  padding-top: 0.9rem;
+  padding-bottom: 0.55rem;
+}
+
+.scoreboard-table--aisle .th-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  text-align: right;
+  min-height: 2.6rem;
+}
+
+.scoreboard-table--aisle .th-with-mark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  min-height: 2.6rem;
+}
+
+.scoreboard-table--aisle .th-stack-title {
+  font-weight: 600;
+}
+
+.scoreboard-table--aisle .th-stack-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Column strokes — same tint as header fill so rules read continuous from head into body. */
+.scoreboard-table--aisle th,
+.scoreboard-table--aisle td {
+  box-shadow: inset -1px 0 0 #f3f0fb;
+}
+
+.scoreboard-table--aisle th:last-child,
+.scoreboard-table--aisle td:last-child {
+  box-shadow: none;
+}
+
+.scoreboard-bays-cell {
+  white-space: normal;
+}
+
+.scoreboard-bays-detail {
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+
+.scoreboard-skus-cell,
+.scoreboard-promo-cell,
+.scoreboard-ratio-cell,
+.scoreboard-action-cell {
+  padding-inline: 0.55rem;
+}
+
+.scoreboard-says-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0; /* force fixed-layout ellipsis */
+}
+
 .scoreboard-label-cell {
-  max-width: 13.5rem;
-  width: 13.5rem;
   white-space: normal;
   word-wrap: break-word;
   overflow-wrap: anywhere;
+}
+
+.scoreboard-table--aisle .scoreboard-label-cell {
+  max-width: none;
+  width: auto;
 }
 
 .scoreboard-row-meta {
@@ -2182,7 +2287,8 @@
   gap: 0.35rem;
 }
 
-.macrospace-location-list li {
+.macrospace-location-list li,
+.macrospace-location-item {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -2192,9 +2298,44 @@
   border-top: 1px solid rgba(9, 9, 9, 0.06);
 }
 
-.macrospace-location-list li:first-child {
+.macrospace-location-list li:first-child,
+.macrospace-location-item:first-child {
   border-top: none;
   padding-top: 0;
+}
+
+.macrospace-location-item.is-primary {
+  padding: 0.4rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-radius: 8px;
+  background: rgba(9, 9, 9, 0.04);
+  border-top: none;
+}
+
+.macrospace-location-item.is-primary .macrospace-location-text {
+  font-weight: 700;
+}
+
+.macrospace-location-item.is-secondary {
+  opacity: 0.72;
+}
+
+.macrospace-location-item.is-secondary .macrospace-location-text {
+  font-weight: 500;
+}
+
+.macrospace-location-badge {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(123, 79, 232, 0.12);
+  color: var(--plv-purple);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: 0.05em;
 }
 
 .macrospace-location-text {

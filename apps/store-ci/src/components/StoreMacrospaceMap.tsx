@@ -654,9 +654,8 @@ function BayComparisonPanel({
             taxonomy={colesColumnProducts.length > 0 ? colesMix : null}
             products={colesColumnProducts}
             productScope={retailer === "Coles" ? "bay" : "category"}
-            locations={
-              retailer === "Coles" ? [bay] : categoryBayBlocks(colesBlocks, bay.label)
-            }
+            locations={categoryBayBlocks(colesBlocks, bay.label)}
+            selectedBayId={retailer === "Coles" ? bay.id : null}
             onViewAllProducts={
               drillDept ? () => onViewAllProducts(drillDept.id) : undefined
             }
@@ -671,9 +670,8 @@ function BayComparisonPanel({
             taxonomy={wwColumnProducts.length > 0 ? wwMix : null}
             products={wwColumnProducts}
             productScope={retailer === "Woolworths" ? "bay" : "category"}
-            locations={
-              retailer === "Woolworths" ? [bay] : categoryBayBlocks(wwBlocks, bay.label)
-            }
+            locations={categoryBayBlocks(wwBlocks, bay.label)}
+            selectedBayId={retailer === "Woolworths" ? bay.id : null}
             onViewAllProducts={
               drillDept ? () => onViewAllProducts(drillDept.id) : undefined
             }
@@ -695,6 +693,7 @@ function StoreBayColumn({
   products,
   productScope,
   locations,
+  selectedBayId,
   onViewAllProducts,
   viewAllCount,
 }: {
@@ -707,6 +706,7 @@ function StoreBayColumn({
   products: SkuRow[];
   productScope: "bay" | "category";
   locations: BayBlock[];
+  selectedBayId?: string | null;
   onViewAllProducts?: () => void;
   viewAllCount?: number;
 }) {
@@ -734,8 +734,8 @@ function StoreBayColumn({
       <div className="macrospace-store-slot">
         <BayLocationsViz
           locations={locations}
-          scope={productScope}
           categoryLabel={categoryLabel}
+          selectedBayId={selectedBayId ?? null}
         />
       </div>
 
@@ -799,12 +799,12 @@ function StoreBayColumn({
 
 function BayLocationsViz({
   locations,
-  scope,
   categoryLabel,
+  selectedBayId,
 }: {
   locations: BayBlock[];
-  scope: "bay" | "category";
   categoryLabel: string;
+  selectedBayId: string | null;
 }) {
   if (locations.length === 0) {
     return (
@@ -815,32 +815,64 @@ function BayLocationsViz({
     );
   }
 
-  const title = scope === "bay" ? "Selected location" : "Matching locations";
-  const shown = locations.slice(0, 8);
+  const ordered = [...locations].sort((a, b) => {
+    const aSel = selectedBayId != null && a.id === selectedBayId ? 0 : 1;
+    const bSel = selectedBayId != null && b.id === selectedBayId ? 0 : 1;
+    if (aSel !== bSel) return aSel - bSel;
+    const aisleCmp = a.aisle.localeCompare(b.aisle, undefined, { numeric: true });
+    if (aisleCmp !== 0) return aisleCmp;
+    const sideCmp = a.side.localeCompare(b.side);
+    if (sideCmp !== 0) return sideCmp;
+    return a.bayNum.localeCompare(b.bayNum, undefined, { numeric: true });
+  });
+
+  const shown = ordered.slice(0, 8);
+  const peerCount = selectedBayId
+    ? Math.max(0, locations.length - 1)
+    : locations.length;
 
   return (
     <div className="macrospace-viz-block">
       <div className="macrospace-viz-head">
-        <h4 className="macrospace-viz-title">{title}</h4>
+        <h4 className="macrospace-viz-title">Matching locations</h4>
         <span className="macrospace-viz-stat">
-          {scope === "category"
-            ? `${intFmt(locations.length)} ${categoryLabel} bays`
-            : "1 bay"}
+          {intFmt(locations.length)} {categoryLabel} bay{locations.length === 1 ? "" : "s"}
         </span>
       </div>
       <ul className="macrospace-location-list">
-        {shown.map((loc) => (
-          <li key={loc.id}>
-            <span className="macrospace-location-text">{formatBayLocation(loc)}</span>
-            <span className="macrospace-location-count">{intFmt(loc.count)} SKUs</span>
-          </li>
-        ))}
+        {shown.map((loc) => {
+          const isPrimary = selectedBayId != null && loc.id === selectedBayId;
+          return (
+            <li
+              key={loc.id}
+              className={
+                isPrimary
+                  ? "macrospace-location-item is-primary"
+                  : selectedBayId
+                    ? "macrospace-location-item is-secondary"
+                    : "macrospace-location-item"
+              }
+            >
+              <span className="macrospace-location-text">
+                {isPrimary ? (
+                  <span className="macrospace-location-badge">Selected</span>
+                ) : null}
+                {formatBayLocation(loc)}
+              </span>
+              <span className="macrospace-location-count">{intFmt(loc.count)} SKUs</span>
+            </li>
+          );
+        })}
       </ul>
-      {locations.length > 8 ? (
+      {ordered.length > 8 ? (
         <p className="muted tiny macrospace-bay-products-more">
-          + {locations.length - 8} more {categoryLabel} bays shown softly on the map
+          + {ordered.length - 8} more {categoryLabel} bays shown softly on the map
         </p>
-      ) : scope === "category" ? (
+      ) : peerCount > 0 && selectedBayId ? (
+        <p className="muted tiny macrospace-location-hint">
+          Selected bay is primary · other {categoryLabel} bays secondary on the map
+        </p>
+      ) : peerCount > 0 ? (
         <p className="muted tiny macrospace-location-hint">
           Other {categoryLabel} bays shown softly on the map
         </p>
