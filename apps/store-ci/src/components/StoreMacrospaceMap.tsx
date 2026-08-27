@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BannerMark } from "./BannerMark";
 import {
+  bayMatchesFocus,
   bayProducts,
   buildBayBlocks,
   categoryBayBlocks,
@@ -67,11 +68,12 @@ function fitViewport(
   bounds: ReturnType<typeof worldBounds>,
   width: number,
   height: number,
+  maxScale = 2.4,
 ): Viewport {
   const pad = 28;
   const innerW = Math.max(width - pad * 2, 1);
   const innerH = Math.max(height - pad * 2, 1);
-  const scale = Math.min(innerW / bounds.width, innerH / bounds.height, 2.4);
+  const scale = Math.min(innerW / bounds.width, innerH / bounds.height, maxScale);
   const tx = pad + (innerW - bounds.width * scale) / 2 - bounds.minX * scale;
   const ty = pad + (innerH - bounds.height * scale) / 2 - bounds.minY * scale;
   return { scale, tx, ty };
@@ -157,6 +159,22 @@ function MacrospacePlanCanvas({
     setReady(true);
   }, [bounds, size.w, size.h, blocks.length]);
 
+  // Zoom to focused subcategory / category so specialty fixtures (e.g. WW aisle 51)
+  // are visible — at full-store zoom they can be only a few pixels.
+  useEffect(() => {
+    if (!focusLabel || blocks.length === 0) {
+      setViewport(fitViewport(bounds, size.w, size.h));
+      return;
+    }
+    const focused = blocks.filter((b) => bayMatchesFocus(b, focusLabel));
+    if (focused.length === 0) {
+      setViewport(fitViewport(bounds, size.w, size.h));
+      return;
+    }
+    const focusBounds = worldBounds(focused, 0.18);
+    setViewport(fitViewport(focusBounds, size.w, size.h, 6));
+  }, [focusLabel, blocks, bounds, size.w, size.h]);
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || blocks.length === 0) return;
@@ -183,17 +201,27 @@ function MacrospacePlanCanvas({
     });
 
     for (const b of sorted) {
-      const isHi = focusLabel != null && b.label === focusLabel;
+      const isHi = bayMatchesFocus(b, focusLabel);
       const isSel = selectedBay?.id === b.id;
       const dimmed = focusLabel != null && !isHi;
 
       const p1 = worldToScreen(v, b.minX, b.maxY, bounds);
       const p2 = worldToScreen(v, b.maxX, b.minY, bounds);
-      const x = p1.sx;
-      const y = p1.sy;
-      const w = p2.sx - p1.sx;
-      const h = p2.sy - p1.sy;
+      let x = p1.sx;
+      let y = p1.sy;
+      let w = p2.sx - p1.sx;
+      let h = p2.sy - p1.sy;
       if (w < 1 || h < 1) continue;
+
+      // Specialty fixtures are physically small — boost on-screen size when focused.
+      if ((isHi || isSel) && (w < 14 || h < 14)) {
+        const cx = x + w / 2;
+        const cy = y + h / 2;
+        w = Math.max(w, 16);
+        h = Math.max(h, 16);
+        x = cx - w / 2;
+        y = cy - h / 2;
+      }
 
       const radius = Math.min(4, w * 0.14, h * 0.14);
       ctx.globalAlpha = dimmed ? 0.2 : isSel || isHi ? 1 : 0.94;
@@ -215,7 +243,14 @@ function MacrospacePlanCanvas({
       }
 
       const minDim = Math.min(w, h);
-      if (minDim >= 30 && !dimmed) {
+      if ((isSel || isHi) && !dimmed) {
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = textColorFor(b.color);
+        ctx.font = `700 ${Math.min(13, Math.max(9, minDim * 0.28))}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(b.aisle, x + w / 2, y + h / 2, Math.max(w, h) - 4);
+      } else if (minDim >= 30 && !dimmed) {
         const label =
           minDim >= 48 ? truncate(b.label, Math.floor(Math.max(w, h) / 7)) : truncate(b.label, 7);
         ctx.globalAlpha = 1;

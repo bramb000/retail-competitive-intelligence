@@ -19,6 +19,8 @@ export interface BayBlock {
   cy: number;
   /** Map colour label (shared comparison taxonomy). */
   label: string;
+  /** Shared-taxonomy mix in this bay (dominant first). */
+  mapMix: BayMixRow[];
   count: number;
   color: string;
   /** Woolworths nomenclature for products in this bay. */
@@ -78,7 +80,9 @@ export function colorFor(label: string): string {
 /** Shared label used to colour the map (Woolworths-style comparison taxonomy). */
 export function groupLabel(sku: SkuRow, grain: Grain): string | null {
   if (grain === "subcategory") {
-    return sku.subcategory || sku.shared_label || sku.gold_category || null;
+    // Never fall back to L0 — that creates phantom Coles-only chips (e.g. "Pantry")
+    // when WW already has fine Iris L1s for the same products.
+    return sku.subcategory || null;
   }
   return sku.shared_label || sku.gold_category || sku.category || null;
 }
@@ -364,7 +368,8 @@ export function buildBayBlocks(skus: SkuRow[], retailer: Retailer, grain: Grain)
 
   return raw
     .map((b) => {
-      const label = dominantLabel(b.mapCounts);
+      const mapMix = mixFromCounts(b.mapCounts, b.count);
+      const label = mapMix[0]?.label ?? "Unknown";
       return {
         id: b.id,
         aisle: b.aisle,
@@ -377,6 +382,7 @@ export function buildBayBlocks(skus: SkuRow[], retailer: Retailer, grain: Grain)
         cx: (b.minX + b.maxX) / 2,
         cy: (b.minY + b.maxY) / 2,
         label,
+        mapMix,
         count: b.count,
         color: colorFor(label),
         wwLabel: dominantLabel(b.wwCounts),
@@ -636,10 +642,17 @@ export function categoryStoreContext(blocks: BayBlock[], categoryLabel: string):
   };
 }
 
+/** True when this bay’s map colour or mix includes the focused category. */
+export function bayMatchesFocus(bay: BayBlock, focusLabel: string | null): boolean {
+  if (!focusLabel) return false;
+  if (bay.label === focusLabel) return true;
+  return bay.mapMix.some((row) => row.label === focusLabel);
+}
+
 /** Bays whose map colour matches the category / subcategory label. */
 export function categoryBayBlocks(blocks: BayBlock[], categoryLabel: string): BayBlock[] {
   return blocks
-    .filter((b) => b.label === categoryLabel)
+    .filter((b) => bayMatchesFocus(b, categoryLabel))
     .sort((a, b) => {
       const aisleCmp = a.aisle.localeCompare(b.aisle, undefined, { numeric: true });
       if (aisleCmp !== 0) return aisleCmp;

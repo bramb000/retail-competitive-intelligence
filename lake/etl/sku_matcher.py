@@ -75,13 +75,34 @@ _KEYWORD_L1: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
         (("potato", "carrot", "onion", "broccoli", "vegetable", "tomato", "cucumber", "capsicum"), "Vegetables"),
     ],
     "Pantry": [
-        (("chip", "crisp", "corn chip"), "Chips"),
-        (("chocolate", "lolly", "candy", "confection"), "Confectionery"),
+        (("chip", "crisp", "corn chip", "doritos", "waves"), "Chips"),
+        (
+            (
+                "chocolate",
+                "lolly",
+                "candy",
+                "confection",
+                "mint",
+                "peppermint",
+                "gum",
+                "lozenge",
+                "smarties",
+                "kitkat",
+                "kit kat",
+                "wafer",
+                "marshmallow",
+                "liquorice",
+                "licorice",
+            ),
+            "Confectionery",
+        ),
         (("biscuit", "cookie", "cracker"), "Biscuits & Crackers"),
-        (("snack", "popcorn", "pretzel", "nut mix"), "Snacks"),
+        (("snack", "popcorn", "pretzel", "nut mix", "harvest snap"), "Snacks"),
         (("pasta", "rice", "noodle"), "Pasta, Rice & Grains"),
         (("sauce", "mayo", "ketchup", "mustard"), "Condiments"),
         (("cereal", "muesli", "oat"), "Breakfast & Spreads"),
+        (("tea", "coffee", "espresso", "latte"), "Tea & Coffee"),
+        (("bake", "flour", "sugar", "cake mix"), "Baking"),
     ],
     "Liquor": [
         (("wine", "champagne", "prosecco"), "Wine"),
@@ -509,9 +530,30 @@ def build_coles_subcategory_lookup(
                 row.get("tokens") or set(),
                 row.get("brand") or "",
                 pool,
-                min_score=0.38,
-                min_confidence=0.55,
+                min_score=0.32,
+                min_confidence=0.48,
             )
+        if best is None:
+            # Last resort: name-match against all WW L1 exemplars (cross-department).
+            # Catches Coles Pantry tea/coffee that WW files under Drinks, etc.
+            all_ww: List[Dict[str, Any]] = []
+            for examples in ww_examples.values():
+                all_ww.extend(examples)
+            best = _infer_from_examples(
+                row.get("tokens") or set(),
+                row.get("brand") or "",
+                all_ww,
+                min_score=0.45,
+                min_confidence=0.62,
+            )
+            if best:
+                inferred[coles_id] = {
+                    "unified_category": l0,
+                    "unified_subcategory": best[0],
+                    "subcategory_source": "inferred_match_cross_dept",
+                    "subcategory_confidence": best[1],
+                }
+                continue
         if best is None:
             kw = _keyword_subcategory(shared_l0, row.get("name") or "")
             if kw:

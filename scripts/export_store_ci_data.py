@@ -27,6 +27,12 @@ from lake.etl.category_glossary import (  # noqa: E402
     subcategory_cross_parent_map,
 )
 from lake.etl.known_value_items import build_kvi_scoreboard  # noqa: E402
+from lake.etl.sku_matcher import (  # noqa: E402
+    _keyword_subcategory,
+    jaccard,
+    name_tokens,
+    normalize_brand,
+)
 
 GOLD_DB = REPO / "lake" / "gold" / "ashfield_compare.duckdb"
 COLES_CATALOGUE = REPO / "data" / "coles_catalogue_categories.csv.csv"
@@ -655,6 +661,29 @@ def export() -> Path:
     }
     departments = l0
 
+    # Coles catalogue rarely has L1; matched WW products often do. Inherit L1 from
+    # sku_matches even when L0 parents disagree (Coles Pantry tea vs WW Drinks).
+    coles_match_l1: Dict[int, Tuple[Optional[str], str]] = {}
+    for _, m in matches.iterrows():
+        ww_l1 = _clean(m.get("ww_l1"))
+        if not ww_l1:
+            continue
+        try:
+            cid = int(m["coles_id"])
+        except (TypeError, ValueError):
+            continue
+        ww_l0 = _clean(m.get("ww_l0"))
+        parent = shared_label_for_gold(str(ww_l0), gloss) if ww_l0 else None
+        resolved = (
+            resolve_shared_l1(parent, str(ww_l1), alias_map=alias_map, cross_parent=cross_parent) if parent else None
+        )
+        if resolved and resolved in l1_merge:
+            resolved = l1_merge[resolved]
+        if resolved:
+            coles_match_l1[cid] = (resolved[0], resolved[1])
+        else:
+            coles_match_l1[cid] = (parent, str(ww_l1))
+
     skus: List[Dict[str, Any]] = []
     kvi_sku_pool: List[Dict[str, Any]] = []
     for _, r in facts.iterrows():
@@ -674,8 +703,19 @@ def export() -> Path:
         shared_sub = resolved[1] if resolved else None
         if resolved:
             shared_parent = resolved[0]
+        if not shared_sub and str(r.get("retailer")) == "Coles":
+            try:
+                cid = int(r["retailer_product_id"])
+            except (TypeError, ValueError):
+                cid = None
+            hit = coles_match_l1.get(cid) if cid is not None else None
+            if hit:
+                shared_parent = hit[0] or shared_parent
+                shared_sub = hit[1]
         l1_id = None
-        if cat and sub:
+        if shared_parent and shared_sub:
+            l1_id = l1_canon.get((shared_parent, shared_sub))
+        if not l1_id and cat and sub:
             l1_id = l1_native_canon.get((str(cat), str(sub)))
             if not l1_id and shared_parent and shared_sub:
                 l1_id = l1_canon.get((shared_parent, shared_sub))
@@ -731,6 +771,71 @@ def export() -> Path:
             )
         if l0_id:
             skus.append(_omit_none(row))
+
+    # Name-match remaining Coles SKUs with no L1 onto WW products that already have one.
+    ww_exemplars: List[Dict[str, Any]] = []
+    for s in skus:
+        if s.get("retailer") != "Woolworths" or not s.get("subcategory"):
+            continue
+        brand = normalize_brand(s.get("brand"))
+        tokens = name_tokens(f"{s.get('brand') or ''} {s.get('name') or ''}")
+        if not tokens:
+            continue
+        ww_exemplars.append(
+            {
+                "brand": brand,
+                "tokens": tokens,
+                "subcategory": s["subcategory"],
+                "parent": s.get("shared_label"),
+                "subcategory_id": s.get("subcategory_id"),
+            }
+        )
+    by_brand_ww: Dict[str, List[Dict[str, Any]]] = {}
+    for ex in ww_exemplars:
+        if ex["brand"]:
+            by_brand_ww.setdefault(ex["brand"], []).append(ex)
+
+    name_mapped = 0
+    for s in skus:
+        if s.get("retailer") != "Coles" or s.get("subcategory"):
+            continue
+        brand = normalize_brand(s.get("brand"))
+        tokens = name_tokens(f"{s.get('brand') or ''} {s.get('name') or ''}")
+        if not tokens:
+            continue
+        pool = by_brand_ww.get(brand) or ww_exemplars
+        best_label = None
+        best_parent = None
+        best_id = None
+        best_score = 0.0
+        for ex in pool:
+            score = jaccard(tokens, ex["tokens"])
+            if score > best_score:
+                best_score = score
+                best_label = ex["subcategory"]
+                best_parent = ex.get("parent")
+                best_id = ex.get("subcategory_id")
+        if best_label and best_score >= 0.34:
+            s["subcategory"] = best_label
+            if best_id:
+                s["subcategory_id"] = best_id
+            elif best_parent and best_label:
+                s["subcategory_id"] = l1_canon.get((best_parent, best_label))
+            if s.get("ww_mapped_category") in (None, s.get("shared_label")):
+                s["ww_mapped_category"] = best_label
+            name_mapped += 1
+        else:
+            shared = s.get("shared_label")
+            kw = _keyword_subcategory(shared or "", s.get("name") or "") if shared else None
+            if kw:
+                s["subcategory"] = kw
+                if shared:
+                    s["subcategory_id"] = l1_canon.get((shared, kw))
+                if s.get("ww_mapped_category") in (None, s.get("shared_label")):
+                    s["ww_mapped_category"] = kw
+                name_mapped += 1
+    if name_mapped:
+        print(f"export name-mapped Coles L1 for {name_mapped} SKUs")
 
     known_value = build_kvi_scoreboard(kvi_sku_pool)
     for k in known_value:
@@ -907,9 +1012,10 @@ def export() -> Path:
                 ),
                 (
                     "Same-product matching is brand + similar name (not barcodes). "
-                    "Coles subcategories: inherit from a matched WW product first, else "
-                    "infer inside that parent aisle — never stamp a whole Coles "
-                    "department as one subcategory."
+                    "Coles subcategories inherit from a matched WW product even when "
+                    "department parents differ, then from name similarity to WW L1s — "
+                    "we do not roll unmatched Coles SKUs up to the parent aisle on the "
+                    "subcategory map."
                 ),
                 (
                     "Bay share is “what share of this store’s identified shelf bays "

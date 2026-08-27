@@ -165,13 +165,20 @@ def transform_coles(
         subcategory_hint = (subcategory_lookup or {}).get(rpid) or {}
         hint_l0 = (subcategory_hint.get("unified_category") or "").strip()
         hint_l1 = (subcategory_hint.get("unified_subcategory") or "").strip()
+        hint_source = subcategory_hint.get("subcategory_source")
+        hint_conf = float(subcategory_hint.get("subcategory_confidence") or 0.0)
         # Matcher stores WW-native L0; Coles unified uses glossary/crosswalk L0.
-        # Accept when they share the same store-CI department.
-        if hint_l1 and (
+        # Direct fuzzy matches should always donate L1 even when banners put the
+        # same product under different parents (Coles Pantry tea vs WW Drinks).
+        same_dept = (
             not hint_l0 or hint_l0 == unified or shared_label_for_gold(hint_l0) == shared_label_for_gold(unified)
-        ):
+        )
+        accept_cross_dept = hint_source in {"direct_match", "inferred_match_cross_dept"} or (
+            hint_source == "inferred_match" and hint_conf >= 0.72
+        )
+        if hint_l1 and (same_dept or accept_cross_dept):
             unified_sub = hint_l1
-            sub_source = subcategory_hint.get("subcategory_source")
+            sub_source = hint_source
             sub_conf = subcategory_hint.get("subcategory_confidence")
         else:
             sub_source = "crosswalk" if unified_sub else None
