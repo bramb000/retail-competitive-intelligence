@@ -269,6 +269,47 @@ def _auto_merge_coles_empty_l1(
     return merge
 
 
+def _canonical_l1_parent_for_sub(mapped_l1, shared_sub: str) -> str:
+    """Pick the parent aisle that best owns this subcategory label (most bay SKUs)."""
+    from collections import defaultdict
+
+    counts: Dict[str, Dict[str, int]] = defaultdict(lambda: {"Coles": 0, "Woolworths": 0})
+    for parent, sub, retailer in zip(
+        mapped_l1["_shared_parent"].tolist(),
+        mapped_l1["_shared_sub"].tolist(),
+        mapped_l1["retailer"].tolist(),
+    ):
+        if not parent or str(sub) != shared_sub:
+            continue
+        counts[str(parent)][str(retailer)] += 1
+
+    if not counts:
+        return shared_sub
+
+    def rank(item: tuple[str, Dict[str, int]]) -> tuple:
+        parent, c = item
+        total = c["Coles"] + c["Woolworths"]
+        weak = 1 if parent in _WEAK_L1_PARENTS else 0
+        return (weak, -c["Coles"], -total, parent)
+
+    return min(counts.items(), key=rank)[0]
+
+
+def _normalize_l1_parents(mapped_l1, space_l1) -> None:
+    """One parent aisle per subcategory label — stops duplicate scoreboard rows."""
+    subs = {str(s) for s in mapped_l1["_shared_sub"].tolist() if s}
+    canon = {sub: _canonical_l1_parent_for_sub(mapped_l1, sub) for sub in subs}
+
+    def rewrite(df) -> None:
+        df["_shared_parent"] = [
+            canon.get(str(s), p) if s else p
+            for p, s in zip(df["_shared_parent"].tolist(), df["_shared_sub"].tolist())
+        ]
+
+    rewrite(mapped_l1)
+    rewrite(space_l1)
+
+
 def export() -> Path:
     if not GOLD_DB.exists():
         payload = _empty_payload("Gold DB missing — run scrape_ashfield_deep.py --phase etl")
@@ -551,6 +592,8 @@ def export() -> Path:
         space_l1["_shared_parent"] = new_parents
         space_l1["_shared_sub"] = new_subs
 
+    _normalize_l1_parents(mapped_l1, space_l1)
+
     l1: List[Dict[str, Any]] = []
     specs_l1 = sorted(
         {
@@ -636,6 +679,7 @@ def export() -> Path:
             l0_canon[gk] = d["id"]
         l0_canon[d["id"]] = d["id"]
     l1_canon: Dict[tuple[str, str], str] = {(d["parent_category"], d["shared_label"]): d["id"] for d in l1}
+    l1_canon_by_sub: Dict[str, str] = {d["shared_label"]: d["id"] for d in l1}
     # Also resolve native (gold_cat, gold_sub) → shared L1 id for SKU rows / matches.
     l1_native_canon: Dict[tuple[str, str], str] = {}
     for d in l1:
@@ -713,7 +757,9 @@ def export() -> Path:
                 shared_parent = hit[0] or shared_parent
                 shared_sub = hit[1]
         l1_id = None
-        if shared_parent and shared_sub:
+        if shared_sub:
+            l1_id = l1_canon_by_sub.get(shared_sub)
+        if not l1_id and shared_parent and shared_sub:
             l1_id = l1_canon.get((shared_parent, shared_sub))
         if not l1_id and cat and sub:
             l1_id = l1_native_canon.get((str(cat), str(sub)))
@@ -820,7 +866,7 @@ def export() -> Path:
             if best_id:
                 s["subcategory_id"] = best_id
             elif best_parent and best_label:
-                s["subcategory_id"] = l1_canon.get((best_parent, best_label))
+                s["subcategory_id"] = l1_canon_by_sub.get(best_label) or l1_canon.get((best_parent, best_label))
             if s.get("ww_mapped_category") in (None, s.get("shared_label")):
                 s["ww_mapped_category"] = best_label
             name_mapped += 1
@@ -830,7 +876,7 @@ def export() -> Path:
             if kw:
                 s["subcategory"] = kw
                 if shared:
-                    s["subcategory_id"] = l1_canon.get((shared, kw))
+                    s["subcategory_id"] = l1_canon_by_sub.get(kw) or l1_canon.get((shared, kw))
                 if s.get("ww_mapped_category") in (None, s.get("shared_label")):
                     s["ww_mapped_category"] = kw
                 name_mapped += 1
@@ -892,6 +938,7 @@ def export() -> Path:
                 "subcategory_id": (
                     (
                         l1_native_canon.get((str(ww_l0), str(ww_l1)))
+                        or (l1_canon_by_sub.get(shared_sub) if shared_sub else None)
                         or (l1_canon.get((shared_parent, shared_sub)) if shared_parent and shared_sub else None)
                     )
                     if ww_l0 and ww_l1

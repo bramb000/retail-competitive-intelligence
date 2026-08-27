@@ -1,3 +1,4 @@
+import { ScoreboardRowMeta } from "./ScoreboardRowMeta";
 import { InfoTip } from "./InfoTip";
 import { BannerMark, DualBannerMarks } from "./BannerMark";
 import { DominanceVenn } from "./DominanceVenn";
@@ -115,9 +116,9 @@ export function DominanceBoard({ data, grain, locationName, onSelect, onOpenMeth
                     }
                   }}
                 >
-                  <td>
+                  <td className="scoreboard-label-cell">
                     <strong>{r.shared_label}</strong>
-                    <div className="muted tiny">{r.blurb}</div>
+                    <ScoreboardRowMeta blurb={r.blurb} grain={grain} />
                   </td>
                   <td>
                     <WinnerBadge row={r} />

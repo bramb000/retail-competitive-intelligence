@@ -1,3 +1,4 @@
+import { ScoreboardRowMeta } from "./ScoreboardRowMeta";
 import { InfoTip } from "./InfoTip";
 import { BannerMark, DualBannerMarks } from "./BannerMark";
 import { BayShareButterfly } from "./BayShareButterfly";
@@ -215,12 +216,13 @@ function DeptRow({
         }
       }}
     >
-      <td>
+      <td className="scoreboard-label-cell">
         <strong>{dept.shared_label}</strong>
-        {grain === "subcategory" && dept.parent_category ? (
-          <div className="muted tiny">{dept.parent_category}</div>
-        ) : null}
-        <div className="muted tiny">{dept.blurb}</div>
+        <ScoreboardRowMeta
+          blurb={dept.blurb}
+          grain={grain}
+          parentCategory={dept.parent_category}
+        />
         {awaiting ? <div className="muted tiny">Data still filling in</div> : null}
       </td>
       <td className="num">

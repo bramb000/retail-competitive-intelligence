@@ -1,3 +1,4 @@
+import { ScoreboardRowMeta } from "./ScoreboardRowMeta";
 import { InfoTip } from "./InfoTip";
 import { BannerMark, DualBannerMarks } from "./BannerMark";
 import {
@@ -127,9 +128,9 @@ export function PriceCompetitionBoard({ data, grain, locationName, onSelect, onO
                     }
                   }}
                 >
-                  <td>
+                  <td className="scoreboard-label-cell">
                     <strong>{r.shared_label}</strong>
-                    <div className="muted tiny">{r.blurb}</div>
+                    <ScoreboardRowMeta blurb={r.blurb} grain={grain} />
                   </td>
                   <td>
                     <StatusBadge status={r.status} />

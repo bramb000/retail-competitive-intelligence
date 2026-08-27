@@ -57,8 +57,10 @@ interface MacrospacePlanProps {
   grain: Grain;
   /** Legend chip selection (controls chip active state). */
   highlight: string | null;
-  /** Category focus for map dimming — bay selection or legend. */
+  /** Legend filter — equal highlight on every matching bay. */
   focusLabel: string | null;
+  /** Category label for a soft peer sweep when one bay is selected. */
+  sweepLabel: string | null;
   selectedBay: BayBlock | null;
   onHighlight: (label: string | null) => void;
   onSelectBay: (bay: BayBlock | null) => void;
@@ -115,6 +117,7 @@ function MacrospacePlanCanvas({
   grain,
   highlight,
   focusLabel,
+  sweepLabel,
   selectedBay,
   onHighlight,
   onSelectBay,
@@ -159,22 +162,6 @@ function MacrospacePlanCanvas({
     setReady(true);
   }, [bounds, size.w, size.h, blocks.length]);
 
-  // Zoom to focused subcategory / category so specialty fixtures (e.g. WW aisle 51)
-  // are visible — at full-store zoom they can be only a few pixels.
-  useEffect(() => {
-    if (!focusLabel || blocks.length === 0) {
-      setViewport(fitViewport(bounds, size.w, size.h));
-      return;
-    }
-    const focused = blocks.filter((b) => bayMatchesFocus(b, focusLabel));
-    if (focused.length === 0) {
-      setViewport(fitViewport(bounds, size.w, size.h));
-      return;
-    }
-    const focusBounds = worldBounds(focused, 0.18);
-    setViewport(fitViewport(focusBounds, size.w, size.h, 6));
-  }, [focusLabel, blocks, bounds, size.w, size.h]);
-
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || blocks.length === 0) return;
@@ -201,9 +188,34 @@ function MacrospacePlanCanvas({
     });
 
     for (const b of sorted) {
-      const isHi = bayMatchesFocus(b, focusLabel);
       const isSel = selectedBay?.id === b.id;
-      const dimmed = focusLabel != null && !isHi;
+      const isLegendHi = focusLabel != null && bayMatchesFocus(b, focusLabel);
+      const isPeer =
+        sweepLabel != null && !isSel && bayMatchesFocus(b, sweepLabel);
+
+      type BayTier = "selected" | "legend" | "peer" | "dimmed" | "normal";
+      const tier: BayTier = isSel
+        ? "selected"
+        : isLegendHi
+          ? "legend"
+          : isPeer
+            ? "peer"
+            : // Dim the rest whenever legend OR a bay selection (sweep) is active —
+              // including the other store's map, which has no selectedBay of its own.
+              focusLabel != null || sweepLabel != null || selectedBay != null
+              ? "dimmed"
+              : "normal";
+
+      const alpha =
+        tier === "selected" || tier === "legend"
+          ? 1
+          : tier === "peer"
+            ? 0.72
+            : tier === "dimmed"
+              ? 0.16
+              : 0.94;
+      const strokeW = tier === "selected" ? 2.4 : tier === "legend" ? 2 : tier === "peer" ? 1.1 : 1;
+      const strongRing = tier === "selected" || tier === "legend";
 
       const p1 = worldToScreen(v, b.minX, b.maxY, bounds);
       const p2 = worldToScreen(v, b.maxX, b.minY, bounds);
@@ -214,7 +226,7 @@ function MacrospacePlanCanvas({
       if (w < 1 || h < 1) continue;
 
       // Specialty fixtures are physically small — boost on-screen size when focused.
-      if ((isHi || isSel) && (w < 14 || h < 14)) {
+      if ((tier === "selected" || tier === "legend") && (w < 14 || h < 14)) {
         const cx = x + w / 2;
         const cy = y + h / 2;
         w = Math.max(w, 16);
@@ -224,33 +236,59 @@ function MacrospacePlanCanvas({
       }
 
       const radius = Math.min(4, w * 0.14, h * 0.14);
-      ctx.globalAlpha = dimmed ? 0.2 : isSel || isHi ? 1 : 0.94;
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = b.color;
-      ctx.strokeStyle = isSel || isHi ? "#111" : "rgba(255,255,255,0.75)";
-      ctx.lineWidth = isSel || isHi ? 2.4 : 1;
+      ctx.strokeStyle =
+        tier === "peer" ? "rgba(255,255,255,0.85)" : strongRing ? "#111" : "rgba(255,255,255,0.75)";
+      ctx.lineWidth = strokeW;
       drawRoundedRect(ctx, x, y, w, h, radius);
       ctx.fill();
       ctx.stroke();
 
-      if (isSel || isHi) {
+      if (strongRing) {
         ctx.shadowColor = "rgba(0,0,0,0.18)";
-        ctx.shadowBlur = isSel ? 8 : 6;
+        ctx.shadowBlur = tier === "selected" ? 8 : 6;
         ctx.strokeStyle = "#111";
-        ctx.lineWidth = isSel ? 2.4 : 2;
+        ctx.lineWidth = tier === "selected" ? 2.4 : 2;
         drawRoundedRect(ctx, x, y, w, h, radius);
         ctx.stroke();
         ctx.shadowBlur = 0;
       }
 
       const minDim = Math.min(w, h);
-      if ((isSel || isHi) && !dimmed) {
+      if (tier === "selected") {
+        const catLabel = truncate(b.label, minDim >= 36 ? 14 : 9);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = textColorFor(b.color);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        if (minDim >= 28) {
+          ctx.font = `700 ${Math.min(11, Math.max(8, minDim * 0.22))}px Inter, system-ui, sans-serif`;
+          ctx.fillText(catLabel, x + w / 2, y + h / 2 - (minDim >= 36 ? 5 : 0), Math.max(w, h) - 4);
+          if (minDim >= 36) {
+            ctx.font = `600 ${Math.min(9, Math.max(7, minDim * 0.16))}px Inter, system-ui, sans-serif`;
+            ctx.globalAlpha = 0.92;
+            ctx.fillText(`A${b.aisle}`, x + w / 2, y + h / 2 + 7, Math.max(w, h) - 4);
+          }
+        } else {
+          ctx.font = `700 8px Inter, system-ui, sans-serif`;
+          ctx.fillText(truncate(b.label, 6), x + w / 2, y + h / 2, Math.max(w, h) - 2);
+        }
+      } else if (tier === "legend") {
         ctx.globalAlpha = 1;
         ctx.fillStyle = textColorFor(b.color);
         ctx.font = `700 ${Math.min(13, Math.max(9, minDim * 0.28))}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(b.aisle, x + w / 2, y + h / 2, Math.max(w, h) - 4);
-      } else if (minDim >= 30 && !dimmed) {
+        ctx.fillText(truncate(b.label, 12), x + w / 2, y + h / 2, Math.max(w, h) - 4);
+      } else if (tier === "peer" && minDim >= 20) {
+        ctx.globalAlpha = 0.88;
+        ctx.fillStyle = textColorFor(b.color);
+        ctx.font = `600 ${Math.min(9, Math.max(7, minDim * 0.2))}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`A${b.aisle}`, x + w / 2, y + h / 2, Math.max(w, h) - 4);
+      } else if (minDim >= 30 && tier === "normal") {
         const label =
           minDim >= 48 ? truncate(b.label, Math.floor(Math.max(w, h) / 7)) : truncate(b.label, 7);
         ctx.globalAlpha = 1;
@@ -262,7 +300,7 @@ function MacrospacePlanCanvas({
       }
     }
     ctx.globalAlpha = 1;
-  }, [blocks, bounds, focusLabel, selectedBay, size]);
+  }, [blocks, bounds, focusLabel, sweepLabel, selectedBay, size]);
 
   useEffect(() => {
     draw();
@@ -440,11 +478,18 @@ function MacrospacePlanCanvas({
       <div className="macrospace-legend-scroll" aria-label={`${retailer} ${noun}`}>
         {groups.map((g) => {
           const active = highlight === g.label;
+          const sweep = !highlight && sweepLabel === g.label;
           return (
             <button
               key={g.label}
               type="button"
-              className={active ? "macrospace-legend-chip active" : "macrospace-legend-chip"}
+              className={
+                active
+                  ? "macrospace-legend-chip active"
+                  : sweep
+                    ? "macrospace-legend-chip sweep"
+                    : "macrospace-legend-chip"
+              }
               onClick={() => onHighlight(active ? null : g.label)}
             >
               <span className="macrospace-swatch" style={{ background: g.color }} />
@@ -523,6 +568,7 @@ function BayComparisonPanel({
   );
   const sideLabel = bay.side === "_" ? "centre" : `${bay.side} side`;
   const bothProductCount = colesCategoryProducts.length + wwCategoryProducts.length;
+  const grainNounLabel = grain === "subcategory" ? "Subcategory" : "Category";
 
   useEffect(() => {
     setPanelTab("overview");
@@ -532,15 +578,36 @@ function BayComparisonPanel({
     <aside className="macrospace-bay-comparison" aria-live="polite">
       <header className="macrospace-bay-comparison-top">
         <div className="macrospace-bay-comparison-intro">
-          <h3 className="macrospace-bay-detail-heading">Bay comparison</h3>
+          <p className="macrospace-bay-detail-eyebrow">Bay comparison · {grainNounLabel}</p>
+          <div className="macrospace-category-hero">
+            <span
+              className="macrospace-category-hero-swatch"
+              style={{ background: bay.color }}
+              aria-hidden="true"
+            />
+            <div className="macrospace-category-hero-text">
+              <h3 className="macrospace-category-hero-title">{bay.label}</h3>
+              <p className="macrospace-category-hero-native">
+                <span>
+                  Coles <strong>{bay.colesLabel || colesMix.label || "—"}</strong>
+                </span>
+                <span className="macrospace-category-hero-sep" aria-hidden="true">
+                  ·
+                </span>
+                <span>
+                  Woolworths <strong>{bay.wwLabel || wwMix.label || "—"}</strong>
+                </span>
+              </p>
+            </div>
+          </div>
           <p className="macrospace-bay-location">
             <BannerMark banner={retailer} size="sm" label="full" />
             <span>
               Aisle {bay.aisle} · {sideLabel} · bay {bay.bayNum}
             </span>
-          </p>
-          <p className="macrospace-bay-count">
-            {intFmt(bay.count)} products · map coloured as <strong>{bay.label}</strong>
+            <span className="macrospace-bay-location-count">
+              · {intFmt(bay.count)} products in this bay
+            </span>
           </p>
         </div>
         <div className="macrospace-bay-comparison-actions">
@@ -658,7 +725,9 @@ function StoreBayColumn({
         {isSelected ? (
           <span className="macrospace-store-column-badge">Selected bay</span>
         ) : (
-          <span className="macrospace-store-column-badge">Same category</span>
+          <span className="macrospace-store-column-badge">
+            Peer · <strong>{categoryLabel}</strong>
+          </span>
         )}
       </header>
 
@@ -769,10 +838,12 @@ function BayLocationsViz({
       </ul>
       {locations.length > 8 ? (
         <p className="muted tiny macrospace-bay-products-more">
-          + {locations.length - 8} more bays highlighted on the map
+          + {locations.length - 8} more {categoryLabel} bays shown softly on the map
         </p>
       ) : scope === "category" ? (
-        <p className="muted tiny macrospace-location-hint">Highlighted on this store’s map</p>
+        <p className="muted tiny macrospace-location-hint">
+          Other {categoryLabel} bays shown softly on the map
+        </p>
       ) : null}
     </div>
   );
@@ -947,7 +1018,14 @@ export function StoreMacrospaceMap({
   );
   const colesGroups = useMemo(() => categoryGroups(colesBlocks), [colesBlocks]);
   const wwGroups = useMemo(() => categoryGroups(wwBlocks), [wwBlocks]);
-  const mapFocusLabel = selectedBay?.bay.label ?? highlight;
+  const mapFocusLabel = highlight;
+  const mapSweepLabel = selectedBay?.bay.label ?? null;
+  const peerBayCount = useMemo(() => {
+    if (!mapSweepLabel) return 0;
+    const colesPeers = categoryBayBlocks(colesBlocks, mapSweepLabel).length;
+    const wwPeers = categoryBayBlocks(wwBlocks, mapSweepLabel).length;
+    return Math.max(colesPeers, wwPeers);
+  }, [mapSweepLabel, colesBlocks, wwBlocks]);
 
   useEffect(() => {
     setHighlight(null);
@@ -959,8 +1037,7 @@ export function StoreMacrospaceMap({
       setSelectedBay(null);
       return;
     }
-    // Map selection and legend highlight are mutually exclusive for the legend chip,
-    // but both maps focus the selected category so peer bays stay highlighted.
+    // Bay tap: zoom to one bay; peer bays in the same category stay visible but subdued.
     setHighlight(null);
     setSelectedBay({ retailer, bay });
   };
@@ -1006,6 +1083,10 @@ export function StoreMacrospaceMap({
           <button type="button" className="chip chip-clear macrospace-clear-highlight" onClick={() => setHighlight(null)}>
             Clear highlight · {highlight}
           </button>
+        ) : selectedBay && peerBayCount > 1 ? (
+          <span className="macrospace-sweep-hint muted tiny">
+            Selected bay is bold · other {selectedBay.bay.label} bays shown softly ({intFmt(peerBayCount - 1)} more)
+          </span>
         ) : null}
       </div>
 
@@ -1028,6 +1109,7 @@ export function StoreMacrospaceMap({
             grain={grain}
             highlight={highlight}
             focusLabel={mapFocusLabel}
+            sweepLabel={mapSweepLabel}
             selectedBay={selectedBay?.retailer === "Coles" ? selectedBay.bay : null}
             onHighlight={handleHighlight}
             onSelectBay={(bay) => handleSelectBay("Coles", bay)}
@@ -1041,6 +1123,7 @@ export function StoreMacrospaceMap({
             grain={grain}
             highlight={highlight}
             focusLabel={mapFocusLabel}
+            sweepLabel={mapSweepLabel}
             selectedBay={selectedBay?.retailer === "Woolworths" ? selectedBay.bay : null}
             onHighlight={handleHighlight}
             onSelectBay={(bay) => handleSelectBay("Woolworths", bay)}
